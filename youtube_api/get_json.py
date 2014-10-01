@@ -24,8 +24,7 @@ from optparse import OptionParser
 CLIENT_SECRETS_FILE = "client_secrets.json"
 
 # We will require read-only access to the YouTube Data and Analytics API.
-YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.readonly",
-  "https://www.googleapis.com/auth/yt-analytics.readonly"]
+YOUTUBE_SCOPES = ["https://www.googleapis.com/auth/youtube.readonly", "https://www.googleapis.com/auth/yt-analytics.readonly"]
 YOUTUBE_API_SERVICE_NAME = "youtube"
 YOUTUBE_API_VERSION = "v3"
 YOUTUBE_ANALYTICS_API_SERVICE_NAME = "youtubeAnalytics"
