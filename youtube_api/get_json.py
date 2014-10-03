@@ -103,7 +103,8 @@ for channel in channels_response.get("items", []):
 		for value in row:
 			dataRow.append(value)
 		data.writerow(dataRow)
-
+print
+print "Successful! Data is stored at " + os.path.abspath(os.path.join(os.getcwd(), "data.csv"))
 
 
 
