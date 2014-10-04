@@ -4,6 +4,8 @@ from datetime import datetime, timedelta
 import httplib2
 import os
 import sys
+import csv
+import time
 
 from apiclient.discovery import build
 from apiclient.errors import HttpError
@@ -92,19 +94,15 @@ def run_analytics_report(youtube_analytics, channel_id, options):
     start_date=options.start_date,
     end_date=options.end_date,
     max_results=options.max_results,
-    sort=options.sort
+	filters=options.filters
+    # sort=options.sort
   ).execute()
 
-  print "Analytics Data for Channel %s" % channel_id
-
-  for column_header in analytics_query_response.get("columnHeaders", []):
-    print "%-20s" % column_header["name"],
-  print
-
+  dataRow = []
   for row in analytics_query_response.get("rows", []):
     for value in row:
-      print "%-20s" % value,
-    print
+      dataRow.append(value)
+  return dataRow
 
 if __name__ == "__main__":
   now = datetime.now()
@@ -112,20 +110,42 @@ if __name__ == "__main__":
   one_week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
 
   argparser.add_argument("--metrics", help="Report metrics",
-    default="views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares")
+    default="views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost")
   argparser.add_argument("--dimensions", help="Report dimensions",
     default="video")
   argparser.add_argument("--start-date", default=one_week_ago,
     help="Start date, in YYYY-MM-DD format")
   argparser.add_argument("--end-date", default=one_day_ago,
     help="End date, in YYYY-MM-DD format")
-  argparser.add_argument("--max-results", help="Max results", default=10)
-  argparser.add_argument("--sort", help="Sort order", default="-views")
+  argparser.add_argument("--max-results", help="Max results", default=1)
+  argparser.add_argument("--filters", default="video==GNZBSZD16cY")
+  # argparser.add_argument("--sort", help="Sort order", default="-views")
   args = argparser.parse_args()
 
   (youtube, youtube_analytics) = get_authenticated_services(args)
+  
+  vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
+  vFile.next()
+  vList = []
+  for row in vFile:
+    vList.append(row[0])
+
+  vData = csv.writer(open("analytics_video_data.csv", "wb+"))
+  vData.writerow(["video_id", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
+
   try:
+    i = 1
     channel_id = get_channel_id(youtube)
-    run_analytics_report(youtube_analytics, channel_id, args)
+    start_time = time.time()
+    for item in vList:
+      args.filters = "video==" + item
+      vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
+      if len(vDataRow) == 0:
+        vDataRow.append(item)
+      vData.writerow(vDataRow)
+      print str(i) + ". data for video " + vDataRow[0] + " recorded"
+      i += 1
+    elapsed_time = time.time() - start_time
+    print "Total elapsed time: " + str(elapsed_time) + " seconds"
   except HttpError, e:
     print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
