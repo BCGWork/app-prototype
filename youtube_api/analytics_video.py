@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 from datetime import datetime, timedelta
+from itertools import islice
 import httplib2
 import os
 import sys
@@ -98,11 +99,8 @@ def run_analytics_report(youtube_analytics, channel_id, options):
     # sort=options.sort
   ).execute()
 
-  dataRow = []
-  for row in analytics_query_response.get("rows", []):
-    for value in row:
-      dataRow.append(value)
-  return dataRow
+  return analytics_query_response.get("rows", [])
+
 
 if __name__ == "__main__":
   now = datetime.now()
@@ -117,7 +115,7 @@ if __name__ == "__main__":
     help="Start date, in YYYY-MM-DD format")
   argparser.add_argument("--end-date", default=one_day_ago,
     help="End date, in YYYY-MM-DD format")
-  argparser.add_argument("--max-results", help="Max results", default=1)
+  argparser.add_argument("--max-results", help="Max results", default=10)
   argparser.add_argument("--filters", default="video==GNZBSZD16cY")
   # argparser.add_argument("--sort", help="Sort order", default="-views")
   args = argparser.parse_args()
@@ -130,22 +128,22 @@ if __name__ == "__main__":
   for row in vFile:
     vList.append(row[0])
 
-  vData = csv.writer(open("analytics_video_data.csv", "wb+"))
+  vData = csv.writer(open("analytics_video_data_3.csv", "wb+"))
   vData.writerow(["video_id", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
 
   try:
-    i = 1
+    iter = len(vList)/10
     channel_id = get_channel_id(youtube)
     start_time = time.time()
-    for item in vList:
-      args.filters = "video==" + item
+    for j in range(1443, iter):
+      args.filters = "video==" + ",".join(vList[(10*j+1):(10*j+11)])
       vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
-      if len(vDataRow) == 0:
-        vDataRow.append(item)
-      vData.writerow(vDataRow)
-      print str(i) + ". data for video " + vDataRow[0] + " recorded"
-      i += 1
+      for row in vDataRow:
+        vData.writerow(row)
+      print "Data for group " + str(j) + " recorded"
     elapsed_time = time.time() - start_time
     print "Total elapsed time: " + str(elapsed_time) + " seconds"
   except HttpError, e:
     print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+
+
