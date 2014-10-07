@@ -118,13 +118,19 @@ if __name__ == "__main__":
 
 	''' METRICS FOR DATE AND VIDEO DIMENSION '''
 	vCnt = 0
-	vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
-	vFile.next()
-	vDict = {}
-	for row in vFile:
-		vDict[row[0]] = row[2][0:10]
 	vData = csv.writer(open("analytics_date_video.csv", "wb+"))
 	vData.writerow(["video_id", "date", "views", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained"])
+	vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
+	vFile.next()
+	vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
+	vFile2.next()
+	vDict = {}
+	vList = []
+	for row in vFile2:
+		vList.append(row[0])
+	for row in vFile:
+		if row[0] not in vList:
+			vDict[row[0]] = row[2][0:10]
 	
 	try:
 		channel_id = get_channel_id(youtube)
@@ -137,6 +143,8 @@ if __name__ == "__main__":
 			for row in vDataRow:
 				row.insert(0, item)
 				vData.writerow(row)
+			if vCnt > 0 and vCnt % 1000 == 0:
+				time.sleep(300)
 			vCnt += 1
 			print str(vCnt) + " - Data recorded for video " + item
 		elapsed_time = time.time() - start_time
