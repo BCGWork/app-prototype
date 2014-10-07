@@ -105,25 +105,26 @@ if __name__ == "__main__":
 	startDate = "2009-06-23"
 	endDate = "2014-10-04"
 
-	argparser.add_argument("--metrics", help="Report metrics",
-		default="views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost")
+	argparser.add_argument("--metrics", help="Report metrics", default="views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained")
 	argparser.add_argument("--dimensions", help="Report dimensions", default="video")
 	argparser.add_argument("--start-date", default=startDate, help="Start date, in YYYY-MM-DD format")
 	argparser.add_argument("--end-date", default=endDate, help="End date, in YYYY-MM-DD format")
-	# argparser.add_argument("--max-results", help="Max results", default=10)
+	argparser.add_argument("--max-results", help="Max results", default=10)
 	argparser.add_argument("--filters", default="video==GNZBSZD16cY")
 	# argparser.add_argument("--sort", help="Sort order", default="-views")
 	args = argparser.parse_args()
 	(youtube, youtube_analytics) = get_authenticated_services(args)
-	
+
+
 	''' METRICS FOR DATE AND VIDEO DIMENSION '''
+	vCnt = 0
 	vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
 	vFile.next()
 	vDict = {}
 	for row in vFile:
 		vDict[row[0]] = row[2][0:10]
 	vData = csv.writer(open("analytics_date_video.csv", "wb+"))
-	vData.writerow(["video_id", "date", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
+	vData.writerow(["video_id", "date", "views", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained"])
 	
 	try:
 		channel_id = get_channel_id(youtube)
@@ -136,7 +137,8 @@ if __name__ == "__main__":
 			for row in vDataRow:
 				row.insert(0, item)
 				vData.writerow(row)
-			print "Data recorded for video " + item
+			vCnt += 1
+			print str(vCnt) + " - Data recorded for video " + item
 		elapsed_time = time.time() - start_time
 		print "Total elapsed time: " + str(elapsed_time) + " seconds"
 	except HttpError, e:
