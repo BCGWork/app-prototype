@@ -102,7 +102,7 @@ if __name__ == "__main__":
 	# now = datetime.now()
 	# one_day_ago = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 	# one_week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
-	startDate = "2009-06-23"
+	startDate = "2009-08-07"
 	endDate = "2014-10-04"
 
 	argparser.add_argument("--metrics", help="Report metrics", default="views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained")
@@ -115,29 +115,29 @@ if __name__ == "__main__":
 	args = argparser.parse_args()
 	(youtube, youtube_analytics) = get_authenticated_services(args)
 
-
-	''' METRICS FOR DATE AND VIDEO DIMENSION '''
+	
+	''' METRICS FOR COUNTRY AND VIDEO DIMENSION '''
 	vCnt = 0
-	vData = csv.writer(open("analytics_date_video.csv", "wb+"))
-	vData.writerow(["video_id", "date", "views", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained"])
+	vData = csv.writer(open("analytics_country_video.csv", "wb+"))
+	vData.writerow(["video_id", "country", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
+	args.metrics = "views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost"
 	vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
 	vFile.next()
-	vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
-	vFile2.next()
 	vDict = {}
-	vList = []
-	for row in vFile2:
-		vList.append(row[0])
+	# vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
+	# vFile2.next()
+	# vList = []
+	# for row in vFile2:
+		# vList.append(row[0])
 	for row in vFile:
-		if row[0] not in vList:
-			vDict[row[0]] = row[2][0:10]
+		# if row[0] not in vList:
+		vDict[row[0]] = ""
 	
 	try:
 		channel_id = get_channel_id(youtube)
 		start_time = time.time()
 		for item in vDict.keys():
-			args.dimensions = "day"
-			args.start_date = vDict[item]
+			args.dimensions = "country"
 			args.filters = "video==" + item
 			vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
 			for row in vDataRow:
@@ -153,6 +153,43 @@ if __name__ == "__main__":
 		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
 
 
+	''' METRICS FOR DATE AND VIDEO DIMENSION '''
+	# vCnt = 0
+	# vData = csv.writer(open("analytics_date_video.csv", "wb+"))
+	# vData.writerow(["video_id", "date", "views", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained"])
+	# vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
+	# vFile.next()
+	# vDict = {}
+	# vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
+	# vFile2.next()
+	# vList = []
+	# for row in vFile2:
+		# vList.append(row[0])
+	# for row in vFile:
+		# if row[0] not in vList:
+			# vDict[row[0]] = row[2][0:10]
+	
+	# try:
+		# channel_id = get_channel_id(youtube)
+		# start_time = time.time()
+		# for item in vDict.keys():
+			# args.dimensions = "day"
+			# args.start_date = vDict[item]
+			# args.filters = "video==" + item
+			# vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
+			# for row in vDataRow:
+				# row.insert(0, item)
+				# vData.writerow(row)
+			# if vCnt > 0 and vCnt % 1000 == 0:
+				# time.sleep(300)
+			# vCnt += 1
+			# print str(vCnt) + " - Data recorded for video " + item
+		# elapsed_time = time.time() - start_time
+		# print "Total elapsed time: " + str(elapsed_time) + " seconds"
+	# except HttpError, e:
+		# print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+
+
 	''' METRICS FOR VIDEO DIMENSION ONLY '''
 	# vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
 	# vFile.next()
@@ -161,6 +198,7 @@ if __name__ == "__main__":
 		# vList.append(row[0])
 	# vData = csv.writer(open("analytics_video_data.csv", "wb+"))
 	# vData.writerow(["video_id", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
+	# args.metrics = "views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost"
 
 	# try:
 		# iter = len(vList)/10
