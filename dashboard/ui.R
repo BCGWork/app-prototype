@@ -54,7 +54,6 @@ shinyUI(
              ),
              tabPanel("Geographical Footprint"),
              tabPanel("Temporal Activities"),
-             tabPanel("Placeholder"),
              tabPanel("Placeholder")
   )
 )
