@@ -8,12 +8,13 @@ setwd("Cases/2014-09-26 TED/youtube_api/")
 #####################################
 rm(list=ls())
 library(data.table)
-data1 <- fread("../analytics_date_video_1.csv", header=TRUE, sep=",")
-data2 <- fread("../analytics_date_video_2.csv", header=TRUE, sep=",")
-data3 <- fread("../analytics_date_video_3.csv", header=TRUE, sep=",")
-data4 <- fread("../analytics_date_video_4.csv", header=TRUE, sep=",")
-data5 <- fread("../analytics_date_video_5.csv", header=TRUE, sep=",")
-data6 <- fread("../analytics_date_video_6.csv", header=TRUE, sep=",")
+data1 <- fread("../analytics_country_video_1.csv", header=TRUE, sep=",")
+data2 <- fread("../analytics_country_video_2.csv", header=TRUE, sep=",")
+data3 <- fread("../analytics_country_video_3.csv", header=TRUE, sep=",")
+data4 <- fread("../analytics_country_video_4.csv", header=TRUE, sep=",")
+data5 <- fread("../analytics_country_video_5.csv", header=TRUE, sep=",")
+data6 <- fread("../analytics_country_video_6.csv", header=TRUE, sep=",")
+data7 <- fread("../analytics_country_video_7.csv", header=TRUE, sep=",")
 
 # existVideo <- c(
 #   unique(data1$video_id),
@@ -25,10 +26,10 @@ data6 <- fread("../analytics_date_video_6.csv", header=TRUE, sep=",")
 # )
 # write.csv(existVideo, file="existing_videos.csv", row.names=FALSE)
 
-data <- do.call(rbind, list(data1, data2, data3, data4, data5, data6))
-data$date <- as.Date(data$date)
-save(data, file="metrics_by_video_date.RData")
-write.csv(data, file="analytics_date_video.csv", row.names=FALSE)
+data <- do.call(rbind, list(data1, data2, data3, data4, data5, data6, data7))
+# data$date <- as.Date(data$date)
+save(data, file="metrics_by_video_country.RData")
+write.csv(data, file="analytics_country_video.csv", row.names=FALSE)
 
 
 

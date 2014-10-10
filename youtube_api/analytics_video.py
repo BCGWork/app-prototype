@@ -124,14 +124,14 @@ if __name__ == "__main__":
 	vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
 	vFile.next()
 	vDict = {}
-	# vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
-	# vFile2.next()
-	# vList = []
-	# for row in vFile2:
-		# vList.append(row[0])
+	vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
+	vFile2.next()
+	vList = []
+	for row in vFile2:
+		vList.append(row[0])
 	for row in vFile:
-		# if row[0] not in vList:
-		vDict[row[0]] = ""
+		if row[0] not in vList:
+			vDict[row[0]] = ""
 	
 	try:
 		channel_id = get_channel_id(youtube)
@@ -144,7 +144,7 @@ if __name__ == "__main__":
 				row.insert(0, item)
 				vData.writerow(row)
 			if vCnt > 0 and vCnt % 1000 == 0:
-				time.sleep(300)
+				time.sleep(10)
 			vCnt += 1
 			print str(vCnt) + " - Data recorded for video " + item
 		elapsed_time = time.time() - start_time
