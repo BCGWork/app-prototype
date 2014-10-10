@@ -33,6 +33,11 @@ shinyServer(function(input, output) {
       labs(x=input$xaxis, y=input$yaxis)
   })
   
+  output$download_perf <- downloadHandler(
+    filename <- function() {"category_performance.csv"},
+    content <- function(file) {write.csv(catPerfData(), file, row.names=FALSE)}
+  )
+  
   output$cat_top <- renderTable({
     catTopData()[1:input$top_n, c("URL", "youtube_category", "video_detail", "upload_date", names(data)[5:17]), with=FALSE]
   })

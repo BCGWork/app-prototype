@@ -37,10 +37,17 @@ shinyUI(
                         ),
                         mainPanel(
                           tabsetPanel(
-                            tabPanel("Category Performance", plotOutput("cat_perf", height="800px")),
+                            tabPanel(
+                              "Category Performance",
+                              downloadButton("download_perf", "Download Data"),
+                              br(),
+                              br(),
+                              br(),
+                              plotOutput("cat_perf", height="800px")
+                            ),
                             tabPanel(
                               "Top Categorical Videos",
-                              downloadButton("download_top", "Download"),
+                              downloadButton("download_top", "Download Data"),
                               br(),
                               br(),
                               br(),
