@@ -9,7 +9,7 @@ shinyServer(function(input, output) {
   })
   
   catTopData <- reactive({
-    cat_top_data <- droplevels(data[youtube_category==input$cat_options])[order(-rank(views))]
+    cat_top_data <- droplevels(perf_data[youtube_category==input$cat_options])[order(-rank(views))]
     cat_top_data[, URL:=paste0("https://www.youtube.com/watch?v=", substring(video_id, 2))]
     cat_top_data$upload_date <- format(cat_top_data$upload_date, "%Y-%m-%d")
     cat_top_data
@@ -39,7 +39,7 @@ shinyServer(function(input, output) {
   )
   
   output$cat_top <- renderTable({
-    catTopData()[1:input$top_n, c("URL", "youtube_category", "video_detail", "upload_date", names(data)[5:17]), with=FALSE]
+    catTopData()[1:input$top_n, c("URL", "youtube_category", "video_detail", "upload_date", names(perf_data)[5:17]), with=FALSE]
   })
   
   output$download_top <- downloadHandler(
