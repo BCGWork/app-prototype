@@ -26,52 +26,52 @@ perf_data[, subscribersLost:=as.numeric(perf_data$subscribersLost)]
 
 ## category_data
 category_data <- perf_data[,
-                      list(
-                        videos = length(video_id),
-                        views = sum(views),
-                        days = sum(days),
-                        comments = sum(comments),
-                        favoritesAdded = sum(favoritesAdded),
-                        favoritesRemoved = sum(favoritesRemoved),
-                        likes = sum(likes),
-                        dislikes = sum(dislikes),
-                        shares = sum(shares),
-                        estimatedMinutesWatched = sum(estimatedMinutesWatched),
-                        averageViewDuration = mean(averageViewDuration),
-                        averageViewPercentage = mean(averageViewPercentage),
-                        subscribersGained = sum(subscribersGained),
-                        subscribersLost = sum(subscribersLost),
-                        viewsPerVideo = sum(views)/length(video_id),
-                        minutesWatchedPerVideo = sum(estimatedMinutesWatched)/length(video_id),
-                        favoritesPerVideo = sum(favoritesAdded)/length(video_id),
-                        likesPerVideo = sum(likes)/length(video_id),
-                        sharesPerVideo = sum(shares)/length(video_id),
-                        viewsPerDay = sum(views)/sum(days),
-                        minutesWatchedPerDay = sum(estimatedMinutesWatched)/sum(days),
-                        favoritesPerDay = sum(favoritesAdded)/sum(days),
-                        likesPerDay = sum(likes)/sum(days),
-                        sharesPerDay = sum(shares)/sum(days)
-                      ),
-                      keyby=youtube_category]
+                           list(
+                             videos = length(video_id),
+                             views = sum(views),
+                             days = sum(days),
+                             comments = sum(comments),
+                             favoritesAdded = sum(favoritesAdded),
+                             favoritesRemoved = sum(favoritesRemoved),
+                             likes = sum(likes),
+                             dislikes = sum(dislikes),
+                             shares = sum(shares),
+                             estimatedMinutesWatched = sum(estimatedMinutesWatched),
+                             averageViewDuration = mean(averageViewDuration),
+                             averageViewPercentage = mean(averageViewPercentage),
+                             subscribersGained = sum(subscribersGained),
+                             subscribersLost = sum(subscribersLost),
+                             viewsPerVideo = sum(views)/length(video_id),
+                             minutesWatchedPerVideo = sum(estimatedMinutesWatched)/length(video_id),
+                             favoritesPerVideo = sum(favoritesAdded)/length(video_id),
+                             likesPerVideo = sum(likes)/length(video_id),
+                             sharesPerVideo = sum(shares)/length(video_id),
+                             viewsPerDay = sum(views)/sum(days),
+                             minutesWatchedPerDay = sum(estimatedMinutesWatched)/sum(days),
+                             favoritesPerDay = sum(favoritesAdded)/sum(days),
+                             likesPerDay = sum(likes)/sum(days),
+                             sharesPerDay = sum(shares)/sum(days)
+                           ),
+                           keyby=youtube_category]
 
 ## video by country
-load("data/metrics_by_video_country.RData")
-country_raw <- data
-rm(data)
-profile <- perf_data[, list(video_id, video_detail, youtube_category, upload_date, days)]
-profile[, video_id:=substring(video_id, 2)]
-setkey(country_raw, video_id)
-setkey(profile, video_id)
-country_data <- profile[country_raw]
+# load("data/metrics_by_video_country.RData")
+# country_raw <- data
+# rm(data)
+# profile <- perf_data[, list(video_id, video_detail, youtube_category, upload_date, days)]
+# profile[, video_id:=substring(video_id, 2)]
+# setkey(country_raw, video_id)
+# setkey(profile, video_id)
+# country_data <- profile[country_raw]
 
 ## video by date
-load("data/metrics_by_video_date.RData")
-date_raw <- data
-rm(data)
-profile <- perf_data[, list(video_id, video_detail, youtube_category, upload_date)]
-profile[, video_id:=substring(video_id, 2)]
-setkey(date_raw, video_id)
-setkey(profile, video_id)
-date_data <- profile[date_raw]
+# load("data/metrics_by_video_date.RData")
+# date_raw <- data
+# rm(data)
+# profile <- perf_data[, list(video_id, video_detail, youtube_category, upload_date)]
+# profile[, video_id:=substring(video_id, 2)]
+# setkey(date_raw, video_id)
+# setkey(profile, video_id)
+# date_data <- profile[date_raw]
 
 
