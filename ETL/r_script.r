@@ -2,17 +2,45 @@
 ####### TED Data Manipulation #######
 #####################################
 
+################
+#### Join tables
+################
+setwd("Cases/2014-09-26 TED/data/api_data/v2/")
+rm(list=ls())
+library(data.table)
+profile <- fread("20141015_clean_data.csv", header=TRUE, sep=",")
+country <- fread("analytics_country_video.csv", header=TRUE, sep=",")
+event <- fread("event_detail.csv", header=TRUE, sep=",")
+perf <- fread("analytics_video_data.csv", header=TRUE, sep=",")
+setkey(profile, video_id)
+country[, video_id:=paste0("v", video_id)]
+setkey(country, video_id)
+setkey(event, event_name)
+perf[, video_id:=paste0("v", video_id)]
+setkey(perf, video_id)
+video_perf <- profile[perf]
+setkey(video_perf, event)
+data <- video_perf[event]
+write.csv(data, file="clean_data_v2.csv", row.names=FALSE)
+
+
+
 #########################
 #### HTTP 500 & 503 error
 #########################
 setwd("Cases/2014-09-26 TED/data/scripts/")
 rm(list=ls())
 library(data.table)
-data1 <- fread("analytics_video_data_1.csv", header=TRUE, sep=",")
-data2 <- fread("analytics_video_data_2.csv", header=TRUE, sep=",")
-data3 <- fread("analytics_video_data_3.csv", header=TRUE, sep=",")
+data1 <- fread("analytics_country_video_1.csv", header=TRUE, sep=",")
+data2 <- fread("analytics_country_video_2.csv", header=TRUE, sep=",")
+data3 <- fread("analytics_country_video_3.csv", header=TRUE, sep=",")
 data <- do.call(rbind, list(data1, data2, data3))
-write.csv(data, file="analytics_video_data.csv", row.names=FALSE)
+write.csv(data, file="analytics_country_video.csv", row.names=FALSE)
+# existing_video <- c(
+#   unique(data1$video_id),
+#   unique(data2$video_id)
+#   )
+# write.csv(existing_video, file="youtube_api/existing_videos.csv", row.names=FALSE)
 
 
 ##############################
@@ -78,6 +106,18 @@ top_cat_trend <- date_category[youtube_category %in% top_cat$youtube_category]
 write.csv(overall, file="overall_trend.csv", row.names=FALSE)
 write.csv(top_cat_trend, file="top_category_trend.csv", row.names=FALSE)
 
+
+############
+#### TED API
+############
+setwd("Cases/2014-09-26 TED/data/scripts/ted_api/")
+rm(list=ls())
+library(rjson)
+events <- fromJSON(file="events.json")
+tmp <- lapply(events, function(u) {lapply(u, function(x) if(is.null(x)) NA else x)})
+tmp <- lapply(tmp, as.data.frame)
+tmp <- do.call(rbind, tmp)
+tmp
 
 
 

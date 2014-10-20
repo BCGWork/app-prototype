@@ -103,7 +103,7 @@ if __name__ == "__main__":
 	# one_day_ago = (now - timedelta(days=1)).strftime("%Y-%m-%d")
 	# one_week_ago = (now - timedelta(days=7)).strftime("%Y-%m-%d")
 	startDate = "2009-08-07"
-	endDate = "2014-10-04"
+	endDate = "2014-10-16"
 
 	argparser.add_argument("--metrics", help="Report metrics", default="views,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained")
 	argparser.add_argument("--dimensions", help="Report dimensions", default="video")
@@ -117,40 +117,41 @@ if __name__ == "__main__":
 
 	
 	''' METRICS FOR COUNTRY AND VIDEO DIMENSION '''
-	vCnt = 0
-	vData = csv.writer(open("analytics_country_video.csv", "wb+"))
-	vData.writerow(["video_id", "country", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
-	args.metrics = "views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost"
-	vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
-	vFile.next()
-	vDict = {}
-	vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
-	vFile2.next()
-	vList = []
-	for row in vFile2:
-		vList.append(row[0])
-	for row in vFile:
-		if row[0] not in vList:
-			vDict[row[0]] = ""
+	# vCnt = 0
+	# vData = csv.writer(open("analytics_country_video.csv", "wb+"))
+	# vData.writerow(["video_id", "country", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
+	# args.metrics = "views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost"
+	# vFile = csv.reader(open("20141015_clean_data.csv", "r"), delimiter = ",")
+	# vFile.next()
+	# vDict = {}
+	# vFile2 = csv.reader(open("existing_videos.csv", "r"), delimiter = ",")
+	# vFile2.next()
+	# vList = []
+	# for row in vFile2:
+		# vList.append(row[0])
+	# for row in vFile:
+		# if row[0][1:] not in vList:
+			# vDict[row[0][1:]] = ""
 	
-	try:
-		channel_id = get_channel_id(youtube)
-		start_time = time.time()
-		for item in vDict.keys():
-			args.dimensions = "country"
-			args.filters = "video==" + item
-			vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
-			for row in vDataRow:
-				row.insert(0, item)
-				vData.writerow(row)
-			if vCnt > 0 and vCnt % 1000 == 0:
-				time.sleep(10)
-			vCnt += 1
-			print str(vCnt) + " - Data recorded for video " + item
-		elapsed_time = time.time() - start_time
-		print "Total elapsed time: " + str(elapsed_time) + " seconds"
-	except HttpError, e:
-		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+	# try:
+		# channel_id = get_channel_id(youtube)
+		# start_time = time.time()
+		# for item in vDict.keys():
+			# print item
+			# args.dimensions = "country"
+			# args.filters = "video==" + item
+			# vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
+			# for row in vDataRow:
+				# row.insert(0, item)
+				# vData.writerow(row)
+			# if vCnt > 0 and vCnt % 1000 == 0:
+				# time.sleep(10)
+			# vCnt += 1
+			# print str(vCnt) + " - Data recorded for video " + item
+		# elapsed_time = time.time() - start_time
+		# print "Total elapsed time: " + str(elapsed_time) + " seconds"
+	# except HttpError, e:
+		# print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
 
 
 	''' METRICS FOR DATE AND VIDEO DIMENSION '''
@@ -191,28 +192,28 @@ if __name__ == "__main__":
 
 
 	''' METRICS FOR VIDEO DIMENSION ONLY '''
-	# vFile = csv.reader(open("video_data.csv", "r"), delimiter = ",")
-	# vFile.next()
-	# vList = []
-	# for row in vFile:
-		# vList.append(row[0])
-	# vData = csv.writer(open("analytics_video_data.csv", "wb+"))
-	# vData.writerow(["video_id", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
-	# args.metrics = "views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost"
+	vFile = csv.reader(open("20141015_clean_data.csv", "r"), delimiter = ",")
+	vFile.next()
+	vList = []
+	for row in vFile:
+		vList.append(row[0][1:])
+	vData = csv.writer(open("analytics_video_data.csv", "wb+"))
+	vData.writerow(["video_id", "views", "comments", "favoritesAdded", "favoritesRemoved", "likes", "dislikes", "shares", "estimatedMinutesWatched", "averageViewDuration", "averageViewPercentage", "subscribersGained", "subscribersLost"])
+	args.metrics = "views,comments,favoritesAdded,favoritesRemoved,likes,dislikes,shares,estimatedMinutesWatched,averageViewDuration,averageViewPercentage,subscribersGained,subscribersLost"
 
-	# try:
-		# iter = len(vList)/10
-		# channel_id = get_channel_id(youtube)
-		# start_time = time.time()
-		# for j in range(iter):
-			# args.filters = "video==" + ",".join(vList[(10*j+1):(10*j+11)])
-			# vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
-			# for row in vDataRow:
-				# vData.writerow(row)
-			# print "Data for group " + str(j) + " recorded"
-		# elapsed_time = time.time() - start_time
-		# print "Total elapsed time: " + str(elapsed_time) + " seconds"
-	# except HttpError, e:
-		# print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
+	try:
+		iter = len(vList)/10
+		channel_id = get_channel_id(youtube)
+		start_time = time.time()
+		for j in range(iter):
+			args.filters = "video==" + ",".join(vList[(10*j+1):(10*j+11)])
+			vDataRow = run_analytics_report(youtube_analytics, channel_id, args)
+			for row in vDataRow:
+				vData.writerow(row)
+			print "Data for group " + str(j) + " recorded"
+		elapsed_time = time.time() - start_time
+		print "Total elapsed time: " + str(elapsed_time) + " seconds"
+	except HttpError, e:
+		print "An HTTP error %d occurred:\n%s" % (e.resp.status, e.content)
 
 

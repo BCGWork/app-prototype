@@ -60,7 +60,18 @@ shinyUI(
              ),
              tabPanel("Geographical Footprint"),
              tabPanel("Temporal Activities"),
-             tabPanel("Placeholder")
+             tabPanel("Category generator",
+                      sidebarLayout(
+                        sidebarPanel(
+                          textInput("text", label=("Paste transcript here"), value="transcript ..."),
+                          br(),
+                          br(),
+                          br(),
+                          actionButton("action", label = "Predict category")
+                        ),
+                        mainPanel("Video couldn't be classified. Watch the video to manually add a label.")
+                      )
+             )
   )
 )
 
