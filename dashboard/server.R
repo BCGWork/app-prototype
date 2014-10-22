@@ -43,7 +43,7 @@ shinyServer(function(input, output) {
         axis.title.x=element_text(size=15),
         axis.title.y=element_text(size=15, vjust=1)
       )
-  })
+  }, width=1024)
   
   output$category_plot <- renderPlot({
     input_x <- input$xaxis
@@ -67,7 +67,7 @@ shinyServer(function(input, output) {
         axis.title.x=element_text(size=15),
         axis.title.y=element_text(size=15, vjust=1)
       )
-  })
+  }, width=1024)
   
   output$style_plot <- renderPlot({
     input_x <- input$xaxis
@@ -91,12 +91,13 @@ shinyServer(function(input, output) {
         axis.title.x=element_text(size=15),
         axis.title.y=element_text(size=15, vjust=1)
       )
-  })
+  }, width=1024)
   
   output$map_plot <- renderPlot({
     input_mapCircle <- input$map_circle
     input_country <- input$map_country
     input_zoom <- input$zoom_scale
+    input_size <- input$map_bubble_size
     if (input_country == "World") {
       data <- overviewData()[,
                              list(
@@ -111,7 +112,7 @@ shinyServer(function(input, output) {
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
-        scale_size_continuous(range=c(5, 15)) +
+        scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data)
     } else {
       data <- overviewData()[country==input_country,
@@ -127,15 +128,16 @@ shinyServer(function(input, output) {
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
-        scale_size_continuous(range=c(10, 30)) +
+        scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=2, color="#2ca25f", data=data)
     }
-  })
+  }, width=1024)
   
   output$map_cat_plot <- renderPlot({
     input_mapCircle <- input$map_circle
     input_country <- input$map_country
     input_zoom <- input$zoom_scale
+    input_size <- input$map_bubble_size
     if (input_country == "World") {
       data <- overviewData()[,
                              list(
@@ -150,9 +152,10 @@ shinyServer(function(input, output) {
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
-        scale_size_continuous(range=c(5, 15)) +
+        scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~category)
+        facet_wrap(~category) +
+        theme(strip.background=element_rect(fill="#2ca25f"))
     } else {
       data <- overviewData()[country==input_country,
                              list(
@@ -167,16 +170,18 @@ shinyServer(function(input, output) {
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
-        scale_size_continuous(range=c(5, 15)) +
+        scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~category)
+        facet_wrap(~category) +
+        theme(strip.background=element_rect(fill="#2ca25f"))
     }
-  })
+  }, width=1024)
   
   output$map_style_plot <- renderPlot({
     input_mapCircle <- input$map_circle
     input_country <- input$map_country
     input_zoom <- input$zoom_scale
+    input_size <- input$map_bubble_size
     if (input_country == "World") {
       data <- overviewData()[,
                              list(
@@ -191,9 +196,10 @@ shinyServer(function(input, output) {
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
-        scale_size_continuous(range=c(5, 15)) +
+        scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~style)
+        facet_wrap(~style) +
+        theme(strip.background=element_rect(fill="#2ca25f"))
     } else {
       data <- overviewData()[country==input_country,
                              list(
@@ -208,12 +214,19 @@ shinyServer(function(input, output) {
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
-        scale_size_continuous(range=c(5, 15)) +
+        scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~style)
+        facet_wrap(~style) +
+        theme(strip.background=element_rect(fill="#2ca25f"))
     }
-  })
+  }, width=1024)
   
+  output$search_output <- renderDataTable({
+    profile_data[, list(youtube_url, title, speaker, language, upload_time,
+                        category, style, taxonomy, human_tags,
+                        overall_rating, idea_rating, presentation_rating, video_quality,
+                        event, city, country, event_year, twitter_hashtag)]
+  })
   
 })
 
@@ -260,4 +273,3 @@ shinyServer(function(input, output) {
 #   filename <- function() {paste0("top_", input$top_n, "_videos_for_", input$cat_options, ".csv")},
 #   content <- function(file) {write.csv(catTopData()[1:input$top_n], file, row.names=FALSE)}
 # )
-

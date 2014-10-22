@@ -58,18 +58,9 @@ shinyUI(
         ),
         mainPanel(
           tabsetPanel(
-            tabPanel(
-              "Overview",
-              plotOutput("overview_plot", height="600px")
-            ),
-            tabPanel(
-              "View by Category",
-              plotOutput("category_plot", height="600px")
-            ),
-            tabPanel(
-              "View by Style",
-              plotOutput("style_plot", height="600px")
-            )
+            tabPanel("Overview", plotOutput("overview_plot", height="768px")),
+            tabPanel("View by Category", plotOutput("category_plot", height="768px")),
+            tabPanel("View by Style", plotOutput("style_plot", height="768px"))
           )
         )
       )
@@ -92,28 +83,15 @@ shinyUI(
             selected="World"
           ),
           br(),
-          sliderInput(
-            "zoom_scale",
-            label="Zoom Scale",
-            min=1,
-            max=11,
-            value=4
-          )
+          sliderInput("zoom_scale", label="Zoom Scale", min=1, max=11, value=4),
+          br(),
+          sliderInput("map_bubble_size", label="Bubble Size", min=3, max=30, value=c(5,15))
         ),
         mainPanel(
           tabsetPanel(
-            tabPanel(
-              "Map Overview",
-              plotOutput("map_plot", height="600px")
-            ),
-            tabPanel(
-              "Maps by Category",
-              plotOutput("map_cat_plot", height="600px")
-            ),
-            tabPanel(
-              "Maps by Style",
-              plotOutput("map_style_plot", height="600px")
-            )
+            tabPanel("Map Overview", plotOutput("map_plot", height="768px")),
+            tabPanel("Maps by Category", plotOutput("map_cat_plot", height="768px")),
+            tabPanel("Maps by Style", plotOutput("map_style_plot", height="768px"))
           )
         )
       )
@@ -123,7 +101,8 @@ shinyUI(
     ),
     tabPanel(
       "Social Media Analysis"
-    )
+    ),
+    tabPanel("TEDx Search", dataTableOutput("search_output"))
   )
 )
 
