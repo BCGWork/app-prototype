@@ -60,13 +60,12 @@ shinyServer(function(input, output) {
                            keyby=c(input_x, "category")]
     ggplot(data, aes_string(x=input_x, y=input_y)) +
       geom_bar(stat="identity", color="black", fill="#2ca25f", width=0.5) +
-      geom_text(data=data, aes_string(label=input_y, vjust=-0.1), size=3) +
+      geom_text(data=data, aes_string(label=input_y, vjust=-0.3), size=3) +
       scale_y_continuous(labels=comma) +
       facet_wrap(~category, scales="free_y") +
       theme(
         axis.title.x=element_text(size=15),
-        axis.title.y=element_text(size=15, vjust=1),
-        strip.text.x=element_text(size=15)
+        axis.title.y=element_text(size=15, vjust=1)
       )
   })
   
@@ -85,13 +84,12 @@ shinyServer(function(input, output) {
                            keyby=c(input_x, "style")]
     ggplot(data, aes_string(x=input_x, y=input_y)) +
       geom_bar(stat="identity", color="black", fill="#2ca25f", width=0.5) +
-      geom_text(data=data, aes_string(label=input_y, vjust=-0.1), size=3) +
+      geom_text(data=data, aes_string(label=input_y, vjust=-0.3), size=3) +
       scale_y_continuous(labels=comma) +
       facet_wrap(~style, scales="free_y") +
       theme(
         axis.title.x=element_text(size=15),
-        axis.title.y=element_text(size=15, vjust=1),
-        strip.text.x=element_text(size=15)
+        axis.title.y=element_text(size=15, vjust=1)
       )
   })
   
@@ -154,8 +152,7 @@ shinyServer(function(input, output) {
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
         scale_size_continuous(range=c(5, 15)) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~category) +
-        theme(strip.text.x=element_text(size=15))
+        facet_wrap(~category)
     } else {
       data <- overviewData()[country==input_country,
                              list(
@@ -172,8 +169,7 @@ shinyServer(function(input, output) {
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
         scale_size_continuous(range=c(5, 15)) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~category) +
-        theme(strip.text.x=element_text(size=15))
+        facet_wrap(~category)
     }
   })
   
@@ -197,8 +193,7 @@ shinyServer(function(input, output) {
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
         scale_size_continuous(range=c(5, 15)) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~style) +
-        theme(strip.text.x=element_text(size=15))
+        facet_wrap(~style)
     } else {
       data <- overviewData()[country==input_country,
                              list(
@@ -215,8 +210,7 @@ shinyServer(function(input, output) {
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
         scale_size_continuous(range=c(5, 15)) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data) +
-        facet_wrap(~style) +
-        theme(strip.text.x=element_text(size=15))
+        facet_wrap(~style)
     }
   })
   
