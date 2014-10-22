@@ -60,15 +60,15 @@ shinyUI(
           tabsetPanel(
             tabPanel(
               "Overview",
-              plotOutput("overview_plot", height="800px")
+              plotOutput("overview_plot", height="600px")
             ),
             tabPanel(
               "View by Category",
-              plotOutput("category_plot", height="800px")
+              plotOutput("category_plot", height="600px")
             ),
             tabPanel(
               "View by Style",
-              plotOutput("style_plot", height="800px")
+              plotOutput("style_plot", height="600px")
             )
           )
         )
@@ -104,15 +104,15 @@ shinyUI(
           tabsetPanel(
             tabPanel(
               "Map Overview",
-              plotOutput("map_plot", height="800px")
+              plotOutput("map_plot", height="600px")
             ),
             tabPanel(
               "Maps by Category",
-              plotOutput("map_cat_plot", height="800px")
+              plotOutput("map_cat_plot", height="600px")
             ),
             tabPanel(
               "Maps by Style",
-              plotOutput("map_style_plot", height="800px")
+              plotOutput("map_style_plot", height="600px")
             )
           )
         )
