@@ -1,4 +1,5 @@
 library(shiny)
+hashtag <- unique(profile_data$twitter_hashtag)[nchar(unique(profile_data$twitter_hashtag))>0]
 
 shinyUI(
   navbarPage(
@@ -100,68 +101,49 @@ shinyUI(
       "Pattern Analysis"
     ),
     tabPanel(
-      "Social Media Analysis"
+      "Social Media Analysis",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            "twitter_hashtag",
+            label="TEDx #hashtag",
+            choices=c("#TEDxTalks", hashtag[order(hashtag)]),
+            selected="#TEDxTalks"
+          ),
+          dateRangeInput("twitter_period", label="between", start=Sys.Date()-10, end=Sys.Date()),
+          br(),
+          actionButton("search_tweets", label="Search")
+        ),
+        mainPanel(
+          tabsetPanel(
+            tabPanel("Word Cloud", plotOutput("word_cloud", height="768px")),
+            tabPanel("Tweets", dataTableOutput("tweets")),
+            tabPanel(
+              "Interaction by Time",
+              selectInput(
+                "twitter_ts_y",
+                label="Measure of interaction",
+                choices=c("tweets", "sentiment", "placeholder"),
+                selected="tweets"
+              ),
+              plotOutput("twitter_ts", height="768px")
+            ),
+            tabPanel(
+              "Event Location Trend",
+              selectInput(
+                "trend_location",
+                label="Select event location",
+                choices=unique(profile_data$event),
+                selected="TEDxTimeSquare"
+              ),
+              dataTableOutput("loc_trend")
+            )
+          )
+        )
+      )
     ),
     tabPanel("TEDx Search", dataTableOutput("search_output"))
   )
 )
 
 
-
-# tabPanel(
-#   "General Profile",
-#   sidebarLayout(
-#     sidebarPanel(
-#       selectInput("xaxis",
-#                   label="X Axis",
-#                   choices=names(category_data)[-1],
-#                   selected="videos"
-#       ),
-#       br(),
-#       selectInput("yaxis",
-#                   label="Y Axis",
-#                   choices=names(category_data)[-1],
-#                   selected="viewsPerVideo"
-#       ),
-#       br(),
-#       selectInput("size",
-#                   label="Size",
-#                   choices=names(category_data)[-1],
-#                   selected="minutesWatchedPerDay"
-#       ),
-#       br(),
-#       selectInput("color",
-#                   label="Color",
-#                   choices=names(category_data)[-1],
-#                   selected="viewsPerVideo"
-#       )
-#     ),
-#     mainPanel(
-#       tabsetPanel(
-#         tabPanel(
-#           "Category Performance",
-#           downloadButton("download_perf", "Download Data"),
-#           br(),
-#           br(),
-#           br(),
-#           plotOutput("cat_perf", height="800px")
-#         ),
-#         tabPanel(
-#           "Top Categorical Videos",
-#           downloadButton("download_top", "Download Data"),
-#           br(),
-#           br(),
-#           br(),
-#           selectInput("cat_options",
-#                       label="select a category",
-#                       choices=unique(category_data$youtube_category),
-#                       selected="Education"
-#           ),
-#           sliderInput("top_n", label="number of videos to show", min=1, max=20, value=10),
-#           br(),
-#           tableOutput("cat_top")
-#         )
-#       )
-#     )
-#   )
-# )

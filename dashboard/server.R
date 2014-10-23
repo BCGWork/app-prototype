@@ -1,10 +1,79 @@
 library(shiny)
 library(data.table)
+library(RColorBrewer)
 library(ggplot2)
 library(scales)
 library(ggmap)
+library(twitteR)
+library(tm)
+library(wordcloud)
+library(RCurl)
+
+options(RCurlOptions = list(cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl")))
+load("credential/twitter.RData")
+registerTwitterOAuth(twitCred)
 
 shinyServer(function(input, output) {
+  getTweets <- function(term, start_date, end_date) {
+    if (term=="#TEDxTalks") {
+      data <- searchTwitter(
+        term,
+        since=as.character(start_date),
+        until=as.character(end_date),
+        lang="en",
+        n=800
+      )
+    } else {
+      data <- searchTwitter(
+        term,
+        since=as.character(start_date),
+        until=as.character(end_date),
+        lang="en",
+        n=800,
+        geocode=paste0(c(paste0(unique(profile_data[twitter_hashtag==term, list(lat,lng)]), collapse=","), "10mi"), collapse=",")
+      )
+    }
+    return(data)
+  }
+  
+  dailyTweets <- function(data) {
+    if (length(data) > 0) {
+      orig_tweets <- data[!(unlist(lapply(data, function(x){x$getRetweeted()})))]
+    } else {
+      stop("No tweets found within specified date range.")
+    }
+    tweet_text <- sapply(orig_tweets, function(x) {x$getText()})
+    tweet_date <- sapply(orig_tweets, function(x) {as.Date(x$getCreated())})
+    return(data.table("date"=as.Date(tweet_date, origin="1970-01-01"), "tweet_text"=tweet_text))
+  }
+  
+  parseTweets <- function(term, data) {
+    if (length(data) > 0) {
+      orig_tweets <- data[!(unlist(lapply(data, function(x){x$getRetweeted()})))]
+    } else {
+      stop("No tweets found within specified date range.")
+    }
+    data_text <- sapply(orig_tweets, function(x) x$getText())
+    data_corpus <- Corpus(VectorSource(data_text))
+    tdm <- TermDocumentMatrix(
+      data_corpus,
+      control=list(
+        removePunctuation=TRUE,
+        removeNumbers=TRUE,
+        tolower=TRUE,
+        stopwords=c(tolower(term), tolower(gsub("#", "", term)), "tedx", stopwords("english"))
+      )
+    )
+    m <- as.matrix(tdm)
+    word_freqs <- sort(rowSums(m), decreasing=TRUE) 
+    dm <- data.frame(word=names(word_freqs), freq=word_freqs)
+    return(dm)
+  }
+  
+  rawTweets <- reactive({getTweets(input$twitter_hashtag, input$twitter_period[1], input$twitter_period[2])})
+  tweetDate <- reactive({dailyTweets(rawTweets())})
+  tweetWords <- reactive({parseTweets(input$twitter_hashtag, rawTweets())})
+  
   overviewData <- reactive({
     filterCategory <- input$filter_category
     filterStyle <- input$filter_style
@@ -225,51 +294,43 @@ shinyServer(function(input, output) {
     profile_data[, list(youtube_url, title, speaker, language, upload_time,
                         category, style, taxonomy, human_tags,
                         overall_rating, idea_rating, presentation_rating, video_quality,
-                        event, city, country, event_year, twitter_hashtag)]
+                        event, city, country, starts_at, ends_at, twitter_hashtag)]
+  })
+  
+  output$word_cloud <- renderPlot({
+    input$search_tweets
+    wordcloud(tweetWords()$word, tweetWords()$freq, scale=c(8, 0.3), min.freq=3, random.order=FALSE, rot.per=0.15, colors=brewer.pal(8, "Dark2"))
+  }, width=1024)
+  
+  output$tweets <- renderDataTable({
+    input$search_tweets
+    tweetDate()
+  })
+  
+  output$twitter_ts <- renderPlot({
+    input_measure <- input$twitter_ts_y
+    raw_data <- tweetDate()[, list(tweets=length(tweet_text)), keyby=date]
+    date_data <- data.table("date"=as.Date(min(raw_data$date):max(raw_data$date), origin="1970-01-01"), key="date")
+    data <- merge(date_data, raw_data, all.x=TRUE)
+    data[is.na(tweets), tweets:=0]
+    ggplot(data, aes_string(x="date", y=input_measure)) +
+      geom_point() +
+      geom_line() +
+      scale_x_date(labels=date_format("%m-%d")) +
+      scale_y_continuous(labels=comma) +
+      theme(
+        axis.text=element_text(size=12),
+        axis.title.x=element_text(size=15),
+        axis.title.y=element_text(size=15, vjust=1)
+      )
+  }, width=1024)
+  
+  output$loc_trend <- renderDataTable({
+    input_event <- input$trend_location
+    lat_long <- unique(profile_data[event==input_event, list(lat, lng)])
+    loc_id <- closestTrendLocations(lat_long$lat, lat_long$lng)$woeid
+    rbind(getTrends(loc_id), getTrends(loc_id, exclude="hashtags"))
   })
   
 })
 
-
-# catPerfData <- reactive({
-#   droplevels(category_data[, c("youtube_category", input$xaxis, input$yaxis, input$size, input$color), with=FALSE])
-# })
-# 
-# catTopData <- reactive({
-#   cat_top_data <- droplevels(perf_data[youtube_category==input$cat_options])[order(-rank(views))]
-#   cat_top_data[, URL:=paste0("https://www.youtube.com/watch?v=", substring(video_id, 2))]
-#   cat_top_data$upload_date <- format(cat_top_data$upload_date, "%Y-%m-%d")
-#   cat_top_data
-# })
-# 
-# output$cat_perf <- renderPlot({
-#   cat_perf_data <- catPerfData()
-#   x_name = input$xaxis
-#   y_name = input$yaxis
-#   x_min <- min(cat_perf_data[, x_name, with=FALSE])
-#   x_max <- max(cat_perf_data[, x_name, with=FALSE])
-#   y_max <- max(cat_perf_data[, y_name, with=FALSE])
-#   
-#   ggplot(cat_perf_data, aes_string(x=x_name, y=y_name, size=input$size, colour=input$color)) +
-#     geom_point() +
-#     geom_text(data=cat_perf_data, aes(label=youtube_category), colour="black", size=5) +
-#     scale_x_continuous(limits=c(-2*x_min, x_max*1.1), labels=comma) +
-#     scale_y_continuous(limits=c(0, y_max*1.1), labels=comma) +
-#     scale_color_gradient(low="#f7fcf5", high="#006d2c") +
-#     scale_size_continuous(range=c(10,30)) +
-#     labs(x=input$xaxis, y=input$yaxis)
-# })
-# 
-# output$download_perf <- downloadHandler(
-#   filename <- function() {"category_performance.csv"},
-#   content <- function(file) {write.csv(catPerfData(), file, row.names=FALSE)}
-# )
-# 
-# output$cat_top <- renderTable({
-#   catTopData()[1:input$top_n, c("URL", "youtube_category", "video_detail", "upload_date", names(perf_data)[5:17]), with=FALSE]
-# })
-# 
-# output$download_top <- downloadHandler(
-#   filename <- function() {paste0("top_", input$top_n, "_videos_for_", input$cat_options, ".csv")},
-#   content <- function(file) {write.csv(catTopData()[1:input$top_n], file, row.names=FALSE)}
-# )
