@@ -8,7 +8,7 @@
 setwd("Cases/2014-09-26 TED/data/api_data/v2/")
 rm(list=ls())
 library(data.table)
-profile <- fread("20141015_clean_data.csv", header=TRUE, sep=",")
+profile <- fread("20141023_clean_data.csv", header=TRUE, sep=",")
 # country <- fread("analytics_country_video.csv", header=TRUE, sep=",")
 event <- fread("event_detail.csv", header=TRUE, sep=",")
 perf <- fread("analytics_video_data.csv", header=TRUE, sep=",")
@@ -21,7 +21,7 @@ setkey(perf, video_id)
 video_perf <- profile[perf]
 setkeyv(video_perf, "event")
 data <- video_perf[event]
-write.csv(data, file="clean_data_v3.csv", row.names=FALSE)
+write.csv(data, file="clean_data_v4.csv", row.names=FALSE)
 
 
 

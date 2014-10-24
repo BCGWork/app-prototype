@@ -168,32 +168,32 @@ shinyServer(function(input, output) {
     input_zoom <- input$zoom_scale
     input_size <- input$map_bubble_size
     if (input_country == "World") {
-      data <- overviewData()[,
-                             list(
-                               talks=length(video_id),
-                               views=sum(views),
-                               shares=sum(shares),
-                               estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                               averageViewPercentage=mean(averageViewPercentage),
-                               subscribersGained=sum(subscribersGained)
-                             ),
-                             keyby=c("lat", "lng")]
+      data <- profile_data[,
+                           list(
+                             talks=length(video_id),
+                             views=sum(views),
+                             shares=sum(shares),
+                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                             averageViewPercentage=mean(averageViewPercentage),
+                             subscribersGained=sum(subscribersGained)
+                           ),
+                           keyby=c("lat", "lng")]
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
         scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data)
     } else {
-      data <- overviewData()[country==input_country,
-                             list(
-                               talks=length(video_id),
-                               views=sum(views),
-                               shares=sum(shares),
-                               estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                               averageViewPercentage=mean(averageViewPercentage),
-                               subscribersGained=sum(subscribersGained)
-                             ),
-                             keyby=c("lat", "lng")]
+      data <- profile_data[country==input_country,
+                           list(
+                             talks=length(video_id),
+                             views=sum(views),
+                             shares=sum(shares),
+                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                             averageViewPercentage=mean(averageViewPercentage),
+                             subscribersGained=sum(subscribersGained)
+                           ),
+                           keyby=c("lat", "lng")]
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
@@ -208,16 +208,16 @@ shinyServer(function(input, output) {
     input_zoom <- input$zoom_scale
     input_size <- input$map_bubble_size
     if (input_country == "World") {
-      data <- overviewData()[,
-                             list(
-                               talks=length(video_id),
-                               views=sum(views),
-                               shares=sum(shares),
-                               estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                               averageViewPercentage=mean(averageViewPercentage),
-                               subscribersGained=sum(subscribersGained)
-                             ),
-                             keyby=c("lat", "lng", "category")]
+      data <- profile_data[,
+                           list(
+                             talks=length(video_id),
+                             views=sum(views),
+                             shares=sum(shares),
+                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                             averageViewPercentage=mean(averageViewPercentage),
+                             subscribersGained=sum(subscribersGained)
+                           ),
+                           keyby=c("lat", "lng", "category")]
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
@@ -226,16 +226,16 @@ shinyServer(function(input, output) {
         facet_wrap(~category) +
         theme(strip.background=element_rect(fill="#2ca25f"))
     } else {
-      data <- overviewData()[country==input_country,
-                             list(
-                               talks=length(video_id),
-                               views=sum(views),
-                               shares=sum(shares),
-                               estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                               averageViewPercentage=mean(averageViewPercentage),
-                               subscribersGained=sum(subscribersGained)
-                             ),
-                             keyby=c("lat", "lng", "category")]
+      data <- profile_data[country==input_country,
+                           list(
+                             talks=length(video_id),
+                             views=sum(views),
+                             shares=sum(shares),
+                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                             averageViewPercentage=mean(averageViewPercentage),
+                             subscribersGained=sum(subscribersGained)
+                           ),
+                           keyby=c("lat", "lng", "category")]
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
@@ -252,16 +252,16 @@ shinyServer(function(input, output) {
     input_zoom <- input$zoom_scale
     input_size <- input$map_bubble_size
     if (input_country == "World") {
-      data <- overviewData()[,
-                             list(
-                               talks=length(video_id),
-                               views=sum(views),
-                               shares=sum(shares),
-                               estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                               averageViewPercentage=mean(averageViewPercentage),
-                               subscribersGained=sum(subscribersGained)
-                             ),
-                             keyby=c("lat", "lng", "style")]
+      data <- profile_data[,
+                           list(
+                             talks=length(video_id),
+                             views=sum(views),
+                             shares=sum(shares),
+                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                             averageViewPercentage=mean(averageViewPercentage),
+                             subscribersGained=sum(subscribersGained)
+                           ),
+                           keyby=c("lat", "lng", "style")]
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
@@ -270,16 +270,16 @@ shinyServer(function(input, output) {
         facet_wrap(~style) +
         theme(strip.background=element_rect(fill="#2ca25f"))
     } else {
-      data <- overviewData()[country==input_country,
-                             list(
-                               talks=length(video_id),
-                               views=sum(views),
-                               shares=sum(shares),
-                               estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                               averageViewPercentage=mean(averageViewPercentage),
-                               subscribersGained=sum(subscribersGained)
-                             ),
-                             keyby=c("lat", "lng", "style")]
+      data <- profile_data[country==input_country,
+                           list(
+                             talks=length(video_id),
+                             views=sum(views),
+                             shares=sum(shares),
+                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                             averageViewPercentage=mean(averageViewPercentage),
+                             subscribersGained=sum(subscribersGained)
+                           ),
+                           keyby=c("lat", "lng", "style")]
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
@@ -292,7 +292,7 @@ shinyServer(function(input, output) {
   
   output$search_output <- renderDataTable({
     profile_data[, list(youtube_url, title, speaker, language, upload_time,
-                        category, style, taxonomy, human_tags,
+                        category, style, taxonomy, human_tags, notes,
                         overall_rating, idea_rating, presentation_rating, video_quality,
                         event, city, country, starts_at, ends_at, twitter_hashtag)]
   })
@@ -329,7 +329,7 @@ shinyServer(function(input, output) {
     input_event <- input$trend_location
     lat_long <- unique(profile_data[event==input_event, list(lat, lng)])
     loc_id <- closestTrendLocations(lat_long$lat, lat_long$lng)$woeid
-    rbind(getTrends(loc_id), getTrends(loc_id, exclude="hashtags"))
+    unique(rbind(getTrends(loc_id), getTrends(loc_id, exclude="hashtags")))
   })
   
 })

@@ -7,7 +7,7 @@ library(data.table)
 #### load data
 ##############
 ## cleaned video data
-profile_data <- fread("data/clean_data_v3.csv", header=TRUE)
+profile_data <- fread("data/clean_data_v4.csv", header=TRUE, sep=",")
 profile_data <- profile_data[!is.na(video_id)]
 profile_data[, starts_at:=as.Date(starts_at)]
 profile_data[, ends_at:=as.Date(ends_at)]
