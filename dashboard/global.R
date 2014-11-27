@@ -6,29 +6,6 @@ library(reshape2)
 library(igraph)
 library(d3Network)
 
-##############
-#### load data
-##############
-## cleaned video data
-profile_data <- fread("data/clean_data_v4.csv", header=TRUE, sep=",")
-tag_data <- fread("data/tag_data_v1.csv", header=TRUE, sep=",")
-profile_data <- profile_data[!is.na(video_id)]
-profile_data[, starts_at:=as.Date(starts_at)]
-profile_data[, ends_at:=as.Date(ends_at)]
-profile_data[!is.na(starts_at), event_year:=year(starts_at)]
-profile_data$overall_rating <- factor(profile_data$overall_rating, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
-profile_data$idea_rating <- factor(profile_data$idea_rating, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
-profile_data$presentation_rating <- factor(profile_data$presentation_rating, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
-profile_data$video_quality <- factor(profile_data$video_quality, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
-profile_data[twitter_hashtag=="", twitter_hashtag:=paste0("#", event)]
-setkey(profile_data, video_id)
-setkey(tag_data, video_id)
-profile_data <- merge(profile_data, tag_data, all.x=TRUE)
-
-## tag library
-content_tags <- processTag(profile_data[, list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)])$node_list$tag
-format_tags <- processTag(profile_data[, list(video_id, Format_tag1, Format_tag2, Format_tag3)])$node_list$tag
-intent_tags <- processTag(profile_data[, list(video_id, Intent_tag1, Intent_tag2)])$node_list$tag
 
 
 ##############
@@ -110,4 +87,29 @@ parseTweets <- function(term, data) {
   return(dm)
 }
 
+
+
+##############
+#### load data
+##############
+## cleaned video data
+profile_data <- fread("data/clean_data_v4.csv", header=TRUE, sep=",")
+tag_data <- fread("data/tag_data_v1.csv", header=TRUE, sep=",")
+profile_data <- profile_data[!is.na(video_id)]
+profile_data[, starts_at:=as.Date(starts_at)]
+profile_data[, ends_at:=as.Date(ends_at)]
+profile_data[!is.na(starts_at), event_year:=year(starts_at)]
+profile_data$overall_rating <- factor(profile_data$overall_rating, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
+profile_data$idea_rating <- factor(profile_data$idea_rating, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
+profile_data$presentation_rating <- factor(profile_data$presentation_rating, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
+profile_data$video_quality <- factor(profile_data$video_quality, levels=c("A", "A-", "B+", "B", "B-", "C+", "C", "C-", "D", "F"))
+profile_data[twitter_hashtag=="", twitter_hashtag:=paste0("#", event)]
+setkey(profile_data, video_id)
+setkey(tag_data, video_id)
+profile_data <- merge(profile_data, tag_data, all.x=TRUE)
+
+## tag library
+content_tags <- processTag(profile_data[, list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)])$node_list$tag
+format_tags <- processTag(profile_data[, list(video_id, Format_tag1, Format_tag2, Format_tag3)])$node_list$tag
+intent_tags <- processTag(profile_data[, list(video_id, Intent_tag1, Intent_tag2)])$node_list$tag
 
