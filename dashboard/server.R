@@ -1,5 +1,6 @@
 library(shiny)
 library(data.table)
+library(reshape2)
 library(tm)
 library(twitteR)
 library(wordcloud)
@@ -8,87 +9,106 @@ library(RColorBrewer)
 library(ggplot2)
 library(scales)
 library(ggmap)
+library(igraph)
+library(d3Network)
+
 
 options(RCurlOptions = list(cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl")))
 load("credential/twitter.RData")
 registerTwitterOAuth(twitCred)
 
 shinyServer(function(input, output) {
-  getTweets <- function(term, start_date, end_date) {
-    if (term=="#TEDxTalks") {
-      data <- searchTwitter(
-        term,
-        since=as.character(start_date),
-        until=as.character(end_date),
-        lang="en",
-        n=800
-      )
+  ###########################
+  #### reactive data listener
+  tagNetworkData <- reactive({
+    tagType <- input$tag_type
+    tagCountry <- input$tag_country
+    tagPeriod <- input$tag_period
+    
+    if (tagType=="Topic") {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)
+        ]
+      output <- processTag(f_out)
+    } else if (tagType=="Delivery Format") {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Format_tag1, Format_tag2, Format_tag3)
+        ]
+      output <- processTag(f_out)
     } else {
-      data <- searchTwitter(
-        term,
-        since=as.character(start_date),
-        until=as.character(end_date),
-        lang="en",
-        n=800,
-        geocode=paste0(c(paste0(unique(profile_data[twitter_hashtag==term, list(lat,lng)]), collapse=","), "10mi"), collapse=",")
-      )
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Intent_tag1, Intent_tag2)
+        ]
+      output <- processTag(f_out)
     }
-    return(data)
-  }
-  
-  dailyTweets <- function(data) {
-    if (length(data) > 0) {
-      orig_tweets <- data[!(unlist(lapply(data, function(x){x$getRetweeted()})))]
-    } else {
-      stop("No tweets found within specified date range.")
-    }
-    tweet_text <- sapply(orig_tweets, function(x) {x$getText()})
-    tweet_date <- sapply(orig_tweets, function(x) {as.Date(x$getCreated())})
-    return(data.table("date"=as.Date(tweet_date, origin="1970-01-01"), "tweet_text"=tweet_text))
-  }
-  
-  parseTweets <- function(term, data) {
-    if (length(data) > 0) {
-      orig_tweets <- data[!(unlist(lapply(data, function(x){x$getRetweeted()})))]
-    } else {
-      stop("No tweets found within specified date range.")
-    }
-    data_text <- sapply(orig_tweets, function(x) x$getText())
-    data_corpus <- Corpus(VectorSource(data_text))
-    tdm <- TermDocumentMatrix(
-      data_corpus,
-      control=list(
-        removePunctuation=TRUE,
-        removeNumbers=TRUE,
-        tolower=TRUE,
-        stopwords=c(tolower(term), tolower(gsub("#", "", term)), "tedx", stopwords("english"))
-      )
-    )
-    m <- as.matrix(tdm)
-    word_freqs <- sort(rowSums(m), decreasing=TRUE) 
-    dm <- data.frame(word=names(word_freqs), freq=word_freqs)
-    return(dm)
-  }
+    output
+  })
   
   rawTweets <- reactive({getTweets(input$twitter_hashtag, input$twitter_period[1], input$twitter_period[2])})
   tweetDate <- reactive({dailyTweets(rawTweets())})
   tweetWords <- reactive({parseTweets(input$twitter_hashtag, rawTweets())})
   
   overviewData <- reactive({
-    filterCategory <- input$filter_category
-    filterStyle <- input$filter_style
+    filterPeriod <- input$filter_period
+    filterTag <- input$filter_tag
     filterCountry <- input$filter_country
-    filterYear <- input$filter_year
     filterLanguage <- input$filter_language
     output <- profile_data[
-      (category==filterCategory | filterCategory=="All") &
-        (style==filterStyle | filterStyle=="All") &
+      (starts_at>=filterPeriod[1] & ends_at<=filterPeriod[2]) &
         (country==filterCountry | filterCountry=="All") &
-        (event_year==filterYear | filterYear=="All") &
-        (language==filterLanguage | filterLanguage=="All")
+        (language==filterLanguage | filterLanguage=="All") &
+        (is.null(filterTag) | Content_tag1 %in% filterTag | Content_tag2 %in% filterTag | Content_tag3 %in% filterTag | Content_tag4 %in% filterTag | Content_tag5 %in% filterTag)
       ]
     output
   })
+  
+  mapData <- reactive({
+    mapPeriod <- input$map_period
+    mapTag <- input$map_tag
+    output <- profile_data[
+      (starts_at>=mapPeriod[1] & ends_at<=mapPeriod[2]) &
+        (is.null(mapTag) | Content_tag1 %in% mapTag | Content_tag2 %in% mapTag | Content_tag3 %in% mapTag | Content_tag4 %in% mapTag | Content_tag5 %in% mapTag)
+      ]
+    output
+  })
+  
+  
+  ##################
+  #### server output
+  output$tagNetwork <- renderPrint({
+    data <- tagNetworkData()
+    adj_mat <- data$adj_mat
+    links <- data$edge_list
+    nodes <- data$node_list
+    tagCluster <- input$tag_cluster
+    cl <- kmeans(adj_mat, tagCluster, iter.max=100, nstart=30)$cluster
+    cl_dt <- data.table(ID=as.numeric(names(cl)), group=cl)
+    setkey(nodes, ID)
+    setkey(cl_dt, ID)
+    nodes <- merge(nodes, cl_dt)
+    
+    d3ForceNetwork(Links=links, Node=as.data.frame(nodes), Source="from", Target="to",
+                   Value="weight", NodeID="tag", Group="group", width=900, height=600,
+                   opacity=0.8, standAlone=FALSE, parentElement="#tagNetwork")
+  }, width=1024)
+  
+  output$mostUsedTags <- renderDataTable({
+    data <- tagNetworkData()
+    adj_mat <- data$adj_mat
+    nodes <- data$node_list
+    tagFrequency <- rowSums(adj_mat)
+    frequentTags <- data.table(ID=as.numeric(names(tagFrequency)), frequency=tagFrequency)
+    setkey(nodes, ID)
+    setkey(frequentTags, ID)
+    nodes[frequentTags][order(-rank(frequency))]
+  })
+  
+  #   output$tagEvol <- renderDataTable({})
+  #   output$tagNew <- renderDataTable({})
+  #   output$tagDis <- renderDataTable({})
   
   output$overview_plot <- renderPlot({
     input_x <- input$xaxis
@@ -168,32 +188,32 @@ shinyServer(function(input, output) {
     input_zoom <- input$zoom_scale
     input_size <- input$map_bubble_size
     if (input_country == "World") {
-      data <- profile_data[,
-                           list(
-                             talks=length(video_id),
-                             views=sum(views),
-                             shares=sum(shares),
-                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                             averageViewPercentage=mean(averageViewPercentage),
-                             subscribersGained=sum(subscribersGained)
-                           ),
-                           keyby=c("lat", "lng")]
+      data <- mapData()[,
+                        list(
+                          talks=length(video_id),
+                          views=sum(views),
+                          shares=sum(shares),
+                          estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                          averageViewPercentage=mean(averageViewPercentage),
+                          subscribersGained=sum(subscribersGained)
+                        ),
+                        keyby=c("lat", "lng")]
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
         scale_size_continuous(range=c(input_size[1], input_size[2])) +
         geom_point(aes(x=lng, y=lat), size=1, color="#2ca25f", data=data)
     } else {
-      data <- profile_data[country==input_country,
-                           list(
-                             talks=length(video_id),
-                             views=sum(views),
-                             shares=sum(shares),
-                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                             averageViewPercentage=mean(averageViewPercentage),
-                             subscribersGained=sum(subscribersGained)
-                           ),
-                           keyby=c("lat", "lng")]
+      data <- mapData()[country==input_country,
+                        list(
+                          talks=length(video_id),
+                          views=sum(views),
+                          shares=sum(shares),
+                          estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                          averageViewPercentage=mean(averageViewPercentage),
+                          subscribersGained=sum(subscribersGained)
+                        ),
+                        keyby=c("lat", "lng")]
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
@@ -208,16 +228,16 @@ shinyServer(function(input, output) {
     input_zoom <- input$zoom_scale
     input_size <- input$map_bubble_size
     if (input_country == "World") {
-      data <- profile_data[,
-                           list(
-                             talks=length(video_id),
-                             views=sum(views),
-                             shares=sum(shares),
-                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                             averageViewPercentage=mean(averageViewPercentage),
-                             subscribersGained=sum(subscribersGained)
-                           ),
-                           keyby=c("lat", "lng", "category")]
+      data <- mapData()[,
+                        list(
+                          talks=length(video_id),
+                          views=sum(views),
+                          shares=sum(shares),
+                          estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                          averageViewPercentage=mean(averageViewPercentage),
+                          subscribersGained=sum(subscribersGained)
+                        ),
+                        keyby=c("lat", "lng", "category")]
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
@@ -226,16 +246,16 @@ shinyServer(function(input, output) {
         facet_wrap(~category) +
         theme(strip.background=element_rect(fill="#2ca25f"))
     } else {
-      data <- profile_data[country==input_country,
-                           list(
-                             talks=length(video_id),
-                             views=sum(views),
-                             shares=sum(shares),
-                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                             averageViewPercentage=mean(averageViewPercentage),
-                             subscribersGained=sum(subscribersGained)
-                           ),
-                           keyby=c("lat", "lng", "category")]
+      data <- mapData()[country==input_country,
+                        list(
+                          talks=length(video_id),
+                          views=sum(views),
+                          shares=sum(shares),
+                          estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                          averageViewPercentage=mean(averageViewPercentage),
+                          subscribersGained=sum(subscribersGained)
+                        ),
+                        keyby=c("lat", "lng", "category")]
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
@@ -252,16 +272,16 @@ shinyServer(function(input, output) {
     input_zoom <- input$zoom_scale
     input_size <- input$map_bubble_size
     if (input_country == "World") {
-      data <- profile_data[,
-                           list(
-                             talks=length(video_id),
-                             views=sum(views),
-                             shares=sum(shares),
-                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                             averageViewPercentage=mean(averageViewPercentage),
-                             subscribersGained=sum(subscribersGained)
-                           ),
-                           keyby=c("lat", "lng", "style")]
+      data <- mapData()[,
+                        list(
+                          talks=length(video_id),
+                          views=sum(views),
+                          shares=sum(shares),
+                          estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                          averageViewPercentage=mean(averageViewPercentage),
+                          subscribersGained=sum(subscribersGained)
+                        ),
+                        keyby=c("lat", "lng", "style")]
       ggplot() +
         borders("world", colour="gray65", fill="#f9f9f9") +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.3, color="#2ca25f", data=data) +
@@ -270,16 +290,16 @@ shinyServer(function(input, output) {
         facet_wrap(~style) +
         theme(strip.background=element_rect(fill="#2ca25f"))
     } else {
-      data <- profile_data[country==input_country,
-                           list(
-                             talks=length(video_id),
-                             views=sum(views),
-                             shares=sum(shares),
-                             estimatedMinutesWatched=sum(estimatedMinutesWatched),
-                             averageViewPercentage=mean(averageViewPercentage),
-                             subscribersGained=sum(subscribersGained)
-                           ),
-                           keyby=c("lat", "lng", "style")]
+      data <- mapData()[country==input_country,
+                        list(
+                          talks=length(video_id),
+                          views=sum(views),
+                          shares=sum(shares),
+                          estimatedMinutesWatched=sum(estimatedMinutesWatched),
+                          averageViewPercentage=mean(averageViewPercentage),
+                          subscribersGained=sum(subscribersGained)
+                        ),
+                        keyby=c("lat", "lng", "style")]
       map <- get_googlemap(input_country, zoom=input_zoom, marker=geocode(input_country), maptype="terrain", color="bw")
       ggmap(map) +
         geom_point(aes_string(x="lng", y="lat", size=input_mapCircle), alpha=0.5, color="#2ca25f", data=data) +
@@ -291,11 +311,12 @@ shinyServer(function(input, output) {
   }, width=1024)
   
   output$search_output <- renderDataTable({
-    profile_data[, list(youtube_url, title, speaker, language, upload_time,
-                        category, style, taxonomy, human_tags, notes,
+    profile_data[, list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
+                        title, speaker, language, upload_time,
+                        category, style, taxonomy, human_tags,
                         overall_rating, idea_rating, presentation_rating, video_quality,
                         event, city, country, starts_at, ends_at, twitter_hashtag)]
-  })
+  }, options=list(columnDefs=list(list(targets=0, searchable=FALSE))))
   
   output$word_cloud <- renderPlot({
     input$search_tweets

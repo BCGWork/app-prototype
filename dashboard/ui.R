@@ -1,11 +1,49 @@
 library(shiny)
-hashtag <- unique(profile_data$twitter_hashtag)[nchar(unique(profile_data$twitter_hashtag))>0]
+# hashtag <- unique(profile_data$twitter_hashtag)[nchar(unique(profile_data$twitter_hashtag))>0]
+hashtag <- unique(profile_data$event)
 
 shinyUI(
   navbarPage(
     "TED Dashboard",
     tabPanel(
-      "General Profile",
+      "Tag Analyses",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput(
+            "tag_type",
+            label="Type of tags",
+            choices=c("Topic", "Delivery Format", "Speaker Intent"),
+            selected="Topic"
+          ),
+          br(),
+          selectInput(
+            "tag_country",
+            label="Country",
+            choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]),
+            selected="All"
+          ),
+          br(),
+          dateRangeInput("tag_period", label="Period", start=max(profile_data$ends_at, na.rm=TRUE)-180, end=max(profile_data$ends_at, na.rm=TRUE))
+        ),
+        mainPanel(
+          tabsetPanel(
+            #             sliderInput("tag_number", label="# of tag in combination", min=1, max=5, value=2)
+            #             dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31")))
+            tabPanel("Frequent Tags", dataTableOutput("mostUsedTags")),
+            tabPanel("Tag Evolution", dataTableOutput("tagEvol")),
+            tabPanel("New Tags", dataTableOutput("tagNew")),
+            tabPanel("Disappeared Tags", dataTableOutput("tagDis")),
+            tabPanel(
+              "Tag Network",
+              sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5),
+              htmlOutput("tagNetwork")
+            )
+          )
+        )
+      )
+    ),
+    tabPanel(
+      "Rating & Popularity",
       sidebarLayout(
         sidebarPanel(
           selectInput(
@@ -22,31 +60,25 @@ shinyUI(
             selected="talks"
           ),
           br(),
-          selectInput(
-            "filter_category",
-            label="Filter by Talk Category",
-            choices=c("All", unique(profile_data$category)[order(unique(profile_data$category))]),
-            selected="All"
+          dateRangeInput(
+            "filter_period",
+            label="Filter by Period",
+            start=min(profile_data$starts_at, na.rm=TRUE),
+            end=max(profile_data$ends_at, na.rm=TRUE)
           ),
           br(),
           selectInput(
-            "filter_style",
-            label="Filter by Talk Style",
-            choices=c("All", unique(profile_data$style)[order(unique(profile_data$style))]),
-            selected="All"
+            "filter_tag",
+            label="Filter by Content Tag",
+            choices=content_tags,
+            multiple=TRUE,
+            selectize=TRUE
           ),
           br(),
           selectInput(
             "filter_country",
             label="Filter by Event Country",
             choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]),
-            selected="All"
-          ),
-          br(),
-          selectInput(
-            "filter_year",
-            label="Filter by Event Year",
-            choices=c("All", min(profile_data$event_year, na.rm=TRUE):max(profile_data$event_year, na.rm=TRUE)),
             selected="All"
           ),
           br(),
@@ -67,7 +99,7 @@ shinyUI(
       )
     ),
     tabPanel(
-      "Geographical Profile",
+      "Geographical View",
       sidebarLayout(
         sidebarPanel(
           selectInput(
@@ -84,6 +116,21 @@ shinyUI(
             selected="World"
           ),
           br(),
+          dateRangeInput(
+            "map_period",
+            label="Filter by Period",
+            start=min(profile_data$starts_at, na.rm=TRUE),
+            end=max(profile_data$ends_at, na.rm=TRUE)
+          ),
+          br(),
+          selectInput(
+            "map_tag",
+            label="Filter by Content Tag",
+            choices=content_tags,
+            multiple=TRUE,
+            selectize=TRUE
+          ),
+          br(),
           sliderInput("zoom_scale", label="Zoom Scale", min=1, max=11, value=4),
           br(),
           sliderInput("map_bubble_size", label="Bubble Size", min=3, max=30, value=c(5,15))
@@ -97,9 +144,7 @@ shinyUI(
         )
       )
     ),
-    tabPanel(
-      "Pattern Analysis"
-    ),
+    tabPanel("Related Talks", dataTableOutput("search_output")),
     tabPanel(
       "Social Media Analysis",
       sidebarLayout(
@@ -141,8 +186,7 @@ shinyUI(
           )
         )
       )
-    ),
-    tabPanel("TEDx Search", dataTableOutput("search_output"))
+    )
   )
 )
 
