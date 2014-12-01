@@ -6,36 +6,58 @@ shinyUI(
   navbarPage(
     "TED Dashboard",
     tabPanel(
+      "Tag Dynamics",
+      sidebarLayout(
+        sidebarPanel(
+          selectInput("tagD_type", label="Type of Tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
+          br(),
+          selectInput("tagD_country", label="Filter by Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
+          br(),
+          selectInput("tagD_content", label="Filter by Content", choices=content_tags, multiple=TRUE, selectize=TRUE),
+          br(),
+          selectInput("tagD_format", label="Filter by Delivery Format", choices=format_tags, multiple=TRUE, selectize=TRUE),
+          br(),
+          selectInput("tagD_intent", label="Filter by Speaker Intent", choices=intent_tags, multiple=TRUE, selectize=TRUE)
+        ),
+        mainPanel(
+          tabsetPanel(
+            tabPanel("Dynamics", plotOutput("tagDynamics", height="768px")),
+            tabPanel("TED vs. TEDx")
+          )
+        )
+      )
+    ),
+    tabPanel(
       "Tag Analyses",
       sidebarLayout(
         sidebarPanel(
-          selectInput(
-            "tag_type",
-            label="Type of tags",
-            choices=c("Topic", "Delivery Format", "Speaker Intent"),
-            selected="Topic"
-          ),
+          selectInput("tag_type", label="Type of tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
           br(),
-          selectInput(
-            "tag_country",
-            label="Country",
-            choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]),
-            selected="All"
-          ),
+          selectInput("tag_country", label="Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
           br(),
           dateRangeInput("tag_period", label="Period", start=max(profile_data$ends_at, na.rm=TRUE)-180, end=max(profile_data$ends_at, na.rm=TRUE))
         ),
         mainPanel(
+          tags$head(tags$script(src="http://d3js.org/d3.v3.min.js")),
           tabsetPanel(
-            #             sliderInput("tag_number", label="# of tag in combination", min=1, max=5, value=2)
-            #             dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31")))
-            tabPanel("Frequent Tags", dataTableOutput("mostUsedTags")),
-            tabPanel("Tag Evolution", dataTableOutput("tagEvol")),
+            tabPanel(
+              "Frequent Tags",
+              sliderInput("tag_number", label="# of tags in combination", min=1, max=4, value=1),
+              hr(),
+              dataTableOutput("mostUsedTags")
+            ),
+            tabPanel(
+              "Tag Evolution",
+              dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31"))),
+              hr(),
+              dataTableOutput("tagEvol")
+            ),
             tabPanel("New Tags", dataTableOutput("tagNew")),
             tabPanel("Disappeared Tags", dataTableOutput("tagDis")),
             tabPanel(
               "Tag Network",
               sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5),
+              hr(),
               htmlOutput("tagNetwork")
             )
           )
@@ -168,9 +190,10 @@ shinyUI(
               selectInput(
                 "twitter_ts_y",
                 label="Measure of interaction",
-                choices=c("tweets", "sentiment", "placeholder"),
+                choices=c("tweets", "sentiment"),
                 selected="tweets"
               ),
+              hr(),
               plotOutput("twitter_ts", height="768px")
             ),
             tabPanel(
@@ -181,6 +204,7 @@ shinyUI(
                 choices=unique(profile_data$event),
                 selected="TEDxTimeSquare"
               ),
+              hr(),
               dataTableOutput("loc_trend")
             )
           )

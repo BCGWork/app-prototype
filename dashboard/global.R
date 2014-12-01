@@ -4,14 +4,21 @@
 library(data.table)
 library(reshape2)
 library(igraph)
-library(d3Network)
-
+library(whisker)
 
 
 ##############
 #### functions
 ##############
 #### video tags processing
+utilReset <- function(x) {
+  if (length(x) >= 1) {
+    return(1)
+  } else {
+    return(0)
+  }
+}
+
 processTag <- function(data) {
   tmp <- melt(data, id.vars="video_id")
   tmp <- tmp[value!=""]
@@ -20,15 +27,132 @@ processTag <- function(data) {
   setkey(tag_list, tag)
   setkey(tmp, value)
   tmp2 <- tmp[tag_list]
-  mat <- dcast.data.table(tmp2, video_id~ID, fun=length)
+  mat <- dcast.data.table(tmp2, video_id~ID, fun=utilReset)
   mat[, video_id:=NULL]
   adj_mat <- crossprod(as.matrix(mat))
+  tag_list$count <- diag(adj_mat)
   igraph_mat <- simplify(graph.adjacency(adj_mat, mode="undirected", weighted=TRUE))
   edge_list <- get.data.frame(igraph_mat)
   edge_list$from <- as.numeric(edge_list$from)
   edge_list$to <- as.numeric(edge_list$to)
   return(list(adj_mat=adj_mat, edge_list=edge_list, node_list=tag_list))
 }
+
+processTagComb <- function(data, comb) {
+  if (comb <= 2) {
+    result <- processTag(data)
+    if (comb == 1) {
+      return(result$node_list);
+    } else {
+      # We use the edge list to find the combinations
+      tag_list <- result$node_list
+      edge_list <- result$edge_list
+      IDs <- paste(tag_list[(edge_list$from + 1),]$ID, tag_list[(edge_list$to + 1),]$ID, sep=", ")
+      tag <- paste(tag_list[(edge_list$from + 1),]$tag, tag_list[(edge_list$to + 1),]$tag, sep=", ")
+      count <- edge_list$weight
+      return(data.frame(ID=IDs, tag=tag, count=count));
+    }
+  } else {
+    # comb = 3 or 4
+    # no other choice than go through a FOR loop
+    tmp <- melt(data, id.vars="video_id")
+    tmp <- tmp[value!=""]
+    utag <- unique(tmp$value)[order(unique(tmp$value))]
+    tag_list <- data.table(ID=0:(length(utag)-1), tag=utag)
+    setkey(tag_list, tag)
+    setkey(tmp, value)
+    tmp2 <- tmp[tag_list]
+    # Remove talks without not enough tags      
+    mat <- dcast.data.table(tmp2, video_id~ID, fun=utilReset)
+    mat[, video_id:=NULL]
+    mat <- mat[which(rowSums(mat) >= comb), ]
+    IDs <- c()
+    tag <- c()
+    count <- c()
+    for (talk in 1:nrow(mat)) {
+      tags <- which(mat[talk,] == 1)
+      # Generate list of combinations
+      combinations <- combn(tags, comb)
+      # For each combinations, verify if it exists to create it or add one
+      for (j in 1:ncol(combinations)) {
+        combinations[,j] = combinations[order(combinations[,j]),j]
+        occ = which(IDs==paste(combinations[,j], collapse=", "))
+        if (length(occ) == 0) {
+          # If not, we create the combination
+          IDs <- c(IDs, paste(combinations[,j], collapse=", "))
+          tag <- c(tag, paste(tag_list[combinations[,j], ]$tag, collapse = ", "))
+          count <- c(count, 1)
+        } else {
+          # If yes, we increase the number of occurrences
+          count[occ] = count[occ] + 1
+        }
+      }
+    }
+    return (data.frame(ID = IDs, tag = tag, count = count))   
+  }
+}
+
+## function to identify evolution of combinations of tags
+tagCombinationsEvol <- function(data1, data2, comb, output="all") {
+  
+  finalComb <- processTagComb(data1, comb)
+  compComb <- processTagComb(data2, comb)
+  
+  label <- c()
+  delta <- c()
+  percent <- c()
+  comment <- c()
+  
+  # Identify lines that are in both dataframes
+  in_both <- unique(as.vector(compComb[as.vector(compComb$ID) %in% as.vector(finalComb$ID),]$ID))
+  
+  if (output == "all") {
+    
+    if (length(in_both) >= 1) {
+      for (i in 1:length(in_both)) {
+        ln_final = grep(paste("^",in_both[i],"$",sep=""), finalComb$ID)
+        ln_comp = grep(paste("^",in_both[i],"$",sep=""), compComb$ID)
+        # cat(paste("Looking for: ",in_both[i]," ; Final: ",ln_final, " ; Comp: ",ln_comp,"\n",sep=""))
+        if (length(ln_final) > 1) cat (paste("!!! for ", in_both[i], "\n", sep=""))
+        if (length(ln_comp) > 1) cat (paste("!!! for ", in_both[i], "\n", sep=""))
+        label <- c(label, as.character(finalComb[ln_final,]$tag))
+        delta <- c(delta, finalComb[ln_final,]$count - compComb[ln_comp,]$count)
+        percent <- c(percent, as.character(paste(as.character(round(delta[i] / compComb[ln_comp,]$count*100)),"%",sep="")))
+        comment <- c(comment, "-")
+      }
+    }
+    
+  }
+  
+  if (output == "all" | output == "new") {
+    
+    # Add lines that are in the end and not in the start
+    label <- c(label, as.character(finalComb[!(finalComb$ID %in% in_both),]$tag))
+    delta <- c(delta, finalComb[!(finalComb$ID %in% in_both),]$count)
+    percent <- c(percent, rep("+infty%",length(finalComb[!(finalComb$ID %in% in_both),]$tag)))
+    comment <- c(comment, rep("New",length(finalComb[!(finalComb$ID %in% in_both),]$tag)))
+    
+  }
+  
+  if (output == "all" | output == "dis") {
+    
+    # Add lines that are in the start and not in the end
+    label <- c(label, as.character(compComb[!(compComb$ID %in% in_both),]$tag))
+    delta <- c(delta, - compComb[!(compComb$ID %in% in_both),]$count)
+    percent <- c(percent, rep("-100%",length(compComb[!(compComb$ID %in% in_both),]$tag)))
+    comment <- c(comment, rep("Disappeared",length(compComb[!(compComb$ID %in% in_both),]$tag)))
+    
+  }
+  
+  result <- data.frame(tag = label, delta = delta, percent = percent, comment = comment)
+  result <- result[order(result$delta, decreasing=TRUE),]
+  return(result);
+  
+}
+
+
+#### d3Network Adapted
+source("d3Adapted.R")
 
 #### social media analysis
 getTweets <- function(term, start_date, end_date) {

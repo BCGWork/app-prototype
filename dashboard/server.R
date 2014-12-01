@@ -10,7 +10,6 @@ library(ggplot2)
 library(scales)
 library(ggmap)
 library(igraph)
-library(d3Network)
 
 
 options(RCurlOptions = list(cainfo = system.file("CurlSSL", "cacert.pem", package = "RCurl")))
@@ -20,6 +19,22 @@ registerTwitterOAuth(twitCred)
 shinyServer(function(input, output) {
   ###########################
   #### reactive data listener
+  tagDynamicsData <- reactive({
+    tagDType <- input$tagD_type
+    tagDCountry <- input$tagD_country
+    tagDContent <- input$tagD_content
+    tagDFormat <- input$tagD_format
+    tagDIntent <- input$tagD_intent
+    
+    output <- profile_data[
+      (country==tagDCountry | tagDCountry=="All") &
+        (is.null(tagDContent) | Content_tag1 %in% tagDContent | Content_tag2 %in% tagDContent | Content_tag3 %in% tagDContent | Content_tag4 %in% tagDContent | Content_tag5 %in% tagDContent) &
+        (is.null(tagDFormat) | Format_tag1 %in% tagDFormat | Format_tag2 %in% tagDFormat | Format_tag3 %in% tagDFormat) &
+        (is.null(tagDIntent) | Intent_tag1 %in% tagDIntent | Intent_tag2 %in% tagDIntent)
+      ]
+    output
+  })
+  
   tagNetworkData <- reactive({
     tagType <- input$tag_type
     tagCountry <- input$tag_country
@@ -30,19 +45,46 @@ shinyServer(function(input, output) {
         (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
         list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)
         ]
-      output <- processTag(f_out)
+      output <- f_out
     } else if (tagType=="Delivery Format") {
       f_out <- profile_data[
         (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
         list(video_id, Format_tag1, Format_tag2, Format_tag3)
         ]
-      output <- processTag(f_out)
+      output <- f_out
     } else {
       f_out <- profile_data[
         (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
         list(video_id, Intent_tag1, Intent_tag2)
         ]
-      output <- processTag(f_out)
+      output <- f_out
+    }
+    output
+  })
+  
+  tagComparativeNetworkData <- reactive({
+    tagType <- input$tag_type
+    tagCountry <- input$tag_country
+    tagPeriod <- input$tag_comp_period
+    
+    if (tagType=="Topic") {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)
+        ]
+      output <- f_out
+    } else if (tagType=="Delivery Format") {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Format_tag1, Format_tag2, Format_tag3)
+        ]
+      output <- f_out
+    } else {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Intent_tag1, Intent_tag2)
+        ]
+      output <- f_out
     }
     output
   })
@@ -78,8 +120,69 @@ shinyServer(function(input, output) {
   
   ##################
   #### server output
+  output$tagDynamics <- renderPlot({
+    tagDType <- input$tagD_type
+    if (tagDType=="Topic") {
+      data <- tagDynamicsData()[, list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
+      tagD <- input$tagD_content
+    } else if (tagDType=="Delivery Format") {
+      data <- tagDynamicsData()[, list(video_id, event_year, Format_tag1, Format_tag2, Format_tag3)]
+      tagD <- input$tagD_format
+    } else {
+      data <- tagDynamicsData()[, list(video_id, event_year, Intent_tag1, Intent_tag2)]
+      tagD <- input$tagD_intent
+    }
+    meltData <- melt(data, id.vars=c("video_id", "event_year"))
+    setnames(meltData, "value", "tags")
+    meltData <- meltData[!is.na(tags) & tags!="" & !is.na(event_year)]
+    plotData <- meltData[is.null(tagD) | tags %in% tagD, list(talks=length(unique(video_id))), by=list(tags, event_year)]
+    if (length(unique(plotData$tags)) > 9) {
+      topCat <- plotData[, list(talks=sum(talks)), by=tags][order(-rank(talks))][1:9, tags]
+      plotData <- plotData[tags %in% topCat]
+    }
+    ggplot(plotData, aes_string(x="event_year", y="talks", colour="tags")) +
+      geom_point() + geom_line() +
+      scale_y_continuous(labels=comma) +
+      scale_color_brewer(palette="Set1") +
+      xlab("event year") +
+      theme(
+        axis.text=element_text(size=12),
+        axis.title.x=element_text(size=15),
+        axis.title.y=element_text(size=15, vjust=1)
+      )
+  }, width=1024)
+  
+  output$mostUsedTags <- renderDataTable({
+    data <- tagNetworkData()
+    nodes <- as.data.frame(processTagComb(data, input$tag_number))
+    #  tagFrequency <- rowSums(adj_mat)
+    #  frequentTags <- data.table(ID=as.numeric(names(tagFrequency)), frequency=tagFrequency)
+    #  setkey(nodes, ID)
+    #  setkey(frequentTags, ID)
+    nodes[order(nodes$count, decreasing=TRUE), c("tag", "count")]
+  })
+  
+  output$tagEvol <- renderDataTable({
+    data1 <- tagNetworkData()
+    data2 <- tagComparativeNetworkData()
+    tagCombinationsEvol(data1, data2, input$tag_number, "all")
+  })
+  
+  output$tagNew <- renderDataTable({
+    data1 <- tagNetworkData()
+    data2 <- tagComparativeNetworkData()
+    tagCombinationsEvol(data1, data2, input$tag_number, "new")
+  })
+  
+  output$tagDis <- renderDataTable({
+    data1 <- tagNetworkData()
+    data2 <- tagComparativeNetworkData()
+    tagCombinationsEvol(data1, data2, input$tag_number, "dis")
+  })
+  
   output$tagNetwork <- renderPrint({
     data <- tagNetworkData()
+    data <- processTag(data)
     adj_mat <- data$adj_mat
     links <- data$edge_list
     nodes <- data$node_list
@@ -90,25 +193,11 @@ shinyServer(function(input, output) {
     setkey(cl_dt, ID)
     nodes <- merge(nodes, cl_dt)
     
-    d3ForceNetwork(Links=links, Node=as.data.frame(nodes), Source="from", Target="to",
-                   Value="weight", NodeID="tag", Group="group", width=900, height=600,
-                   opacity=0.8, standAlone=FALSE, parentElement="#tagNetwork")
+    d3ForceNetworkAdapted(Links=links, Node=as.data.frame(nodes), Source="from", Target="to",
+                          Value="weight", NodeID="tag", Group="group", Count="count", width=900, height=600,
+                          opacity=1, standAlone=FALSE, parentElement="#tagNetwork", zoom=TRUE)
+    
   }, width=1024)
-  
-  output$mostUsedTags <- renderDataTable({
-    data <- tagNetworkData()
-    adj_mat <- data$adj_mat
-    nodes <- data$node_list
-    tagFrequency <- rowSums(adj_mat)
-    frequentTags <- data.table(ID=as.numeric(names(tagFrequency)), frequency=tagFrequency)
-    setkey(nodes, ID)
-    setkey(frequentTags, ID)
-    nodes[frequentTags][order(-rank(frequency))]
-  })
-  
-  #   output$tagEvol <- renderDataTable({})
-  #   output$tagNew <- renderDataTable({})
-  #   output$tagDis <- renderDataTable({})
   
   output$overview_plot <- renderPlot({
     input_x <- input$xaxis
@@ -320,7 +409,10 @@ shinyServer(function(input, output) {
   
   output$word_cloud <- renderPlot({
     input$search_tweets
-    wordcloud(tweetWords()$word, tweetWords()$freq, scale=c(8, 0.3), min.freq=3, random.order=FALSE, rot.per=0.15, colors=brewer.pal(8, "Dark2"))
+    if (input$search_tweets == 0) {
+      return()
+    }
+    isolate(wordcloud(tweetWords()$word, tweetWords()$freq, scale=c(8, 0.3), min.freq=3, random.order=FALSE, rot.per=0.15, colors=brewer.pal(8, "Dark2")))
   }, width=1024)
   
   output$tweets <- renderDataTable({
