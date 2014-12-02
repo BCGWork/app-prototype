@@ -218,7 +218,7 @@ parseTweets <- function(term, data) {
 ##############
 ## cleaned video data
 profile_data <- fread("data/clean_data_v4.csv", header=TRUE, sep=",")
-tag_data <- fread("data/tag_data_v1.csv", header=TRUE, sep=",")
+tag_data <- fread("data/tag_data_v1.csv", header=TRUE, sep=";")
 profile_data <- profile_data[!is.na(video_id)]
 profile_data[, starts_at:=as.Date(starts_at)]
 profile_data[, ends_at:=as.Date(ends_at)]
@@ -237,3 +237,8 @@ content_tags <- processTag(profile_data[, list(video_id, Content_tag1, Content_t
 format_tags <- processTag(profile_data[, list(video_id, Format_tag1, Format_tag2, Format_tag3)])$node_list$tag
 intent_tags <- processTag(profile_data[, list(video_id, Intent_tag1, Intent_tag2)])$node_list$tag
 
+##############
+## TED talks tags
+ted_data <- fread("data/TEDtalks_tag_data.csv", header=TRUE, sep=",")
+ted_data <- ted_data[, Published:=as.Date(Published, format="%m/%d/%y")]
+ted_data <- ted_data[!is.na(Published), event_year:=year(Published)]

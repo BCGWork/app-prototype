@@ -152,6 +152,38 @@ shinyServer(function(input, output) {
       )
   }, width=1024)
   
+  output$tagTEDxvsTED <- renderPlot({
+    tag_TEDvsTEDx <- input$tag_TEDvsTEDx
+    TEDx <- profile_data[
+        (Content_tag1 %in% tag_TEDvsTEDx | Content_tag2 %in% tag_TEDvsTEDx | Content_tag3 %in% tag_TEDvsTEDx | Content_tag4 %in% tag_TEDvsTEDx | Content_tag5 %in% tag_TEDvsTEDx)
+        , list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
+    meltData <- melt(data, id.vars=c("video_id", "event_year"))
+    setnames(meltData, "value", "tags")
+    meltData <- meltData[!is.na(tags) & tags!="" & !is.na(event_year)]
+    plotData_TEDx <- meltData[tags %in% tag_TEDvsTEDx, list(talks=length(unique(video_id))), by=list(tags, event_year)]
+    plotData_TEDx$type = "TEDx"
+    
+    TED <- ted_data[
+      (tolower(Tag) %in% tolower(tag_TEDvsTEDx)), 
+      list(TalkId, Tag, event_year)
+      ]
+    setnames(TED, "Tag", "tags")
+    plotData_TED <- TED[, list(talks=length(unique(TalkId))), by=list(tags, event_year)]
+    plotData_TED$type = "TED"
+    plotData <- rbind(plotData_TEDx, plotData_TED)
+    
+    ggplot(plotData, aes_string(x="event_year", y="talks", colour="type")) +
+      geom_point() + geom_line() +
+      scale_y_continuous(labels=comma) +
+      scale_color_brewer(palette="Set1") +
+      xlab("event year") +
+      theme(
+        axis.text=element_text(size=12),
+        axis.title.x=element_text(size=15),
+        axis.title.y=element_text(size=15, vjust=1)
+      )
+  }, width=1024)
+  
   output$mostUsedTags <- renderDataTable({
     data <- tagNetworkData()
     nodes <- as.data.frame(processTagComb(data, input$tag_number))
@@ -160,25 +192,25 @@ shinyServer(function(input, output) {
     #  setkey(nodes, ID)
     #  setkey(frequentTags, ID)
     nodes[order(nodes$count, decreasing=TRUE), c("tag", "count")]
-  })
+  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
   
   output$tagEvol <- renderDataTable({
     data1 <- tagNetworkData()
     data2 <- tagComparativeNetworkData()
     tagCombinationsEvol(data1, data2, input$tag_number, "all")
-  })
+  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
   
   output$tagNew <- renderDataTable({
     data1 <- tagNetworkData()
     data2 <- tagComparativeNetworkData()
     tagCombinationsEvol(data1, data2, input$tag_number, "new")
-  })
+  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
   
   output$tagDis <- renderDataTable({
     data1 <- tagNetworkData()
     data2 <- tagComparativeNetworkData()
     tagCombinationsEvol(data1, data2, input$tag_number, "dis")
-  })
+  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
   
   output$tagNetwork <- renderPrint({
     data <- tagNetworkData()

@@ -7,25 +7,51 @@ shinyUI(
     "TED Dashboard",
     tabPanel(
       "Tag Dynamics",
-      sidebarLayout(
-        sidebarPanel(
-          selectInput("tagD_type", label="Type of Tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
-          br(),
-          selectInput("tagD_country", label="Filter by Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
-          br(),
-          selectInput("tagD_content", label="Filter by Content", choices=content_tags, multiple=TRUE, selectize=TRUE),
-          br(),
-          selectInput("tagD_format", label="Filter by Delivery Format", choices=format_tags, multiple=TRUE, selectize=TRUE),
-          br(),
-          selectInput("tagD_intent", label="Filter by Speaker Intent", choices=intent_tags, multiple=TRUE, selectize=TRUE)
+      tabsetPanel(
+        tabPanel(
+          "Dynamics",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("tagD_type", label="Type of Tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
+              br(),
+              selectInput("tagD_country", label="Filter by Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
+              br(),
+              selectInput("tagD_content", label="Filter by Content", choices=content_tags, multiple=TRUE, selectize=TRUE),
+              br(),
+              selectInput("tagD_format", label="Filter by Delivery Format", choices=format_tags, multiple=TRUE, selectize=TRUE),
+              br(),
+              selectInput("tagD_intent", label="Filter by Speaker Intent", choices=intent_tags, multiple=TRUE, selectize=TRUE)
+            ),
+            mainPanel(plotOutput("tagDynamics", height="768px")))
         ),
-        mainPanel(
-          tabsetPanel(
-            tabPanel("Dynamics", plotOutput("tagDynamics", height="768px")),
-            tabPanel("TED vs. TEDx")
-          )
+        tabPanel(
+          "TEDx vs TED",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("tag_TEDvsTEDx", label="Topic tag to study", choices=content_tags, multiple=TRUE, selectize=TRUE)
+            ),
+            mainPanel(plotOutput("tagTEDxvsTED", height="768px")))
         )
       )
+      #       sidebarLayout(
+      #         sidebarPanel(
+      #           selectInput("tagD_type", label="Type of Tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
+      #           br(),
+      #           selectInput("tagD_country", label="Filter by Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
+      #           br(),
+      #           selectInput("tagD_content", label="Filter by Content", choices=content_tags, multiple=TRUE, selectize=TRUE),
+      #           br(),
+      #           selectInput("tagD_format", label="Filter by Delivery Format", choices=format_tags, multiple=TRUE, selectize=TRUE),
+      #           br(),
+      #           selectInput("tagD_intent", label="Filter by Speaker Intent", choices=intent_tags, multiple=TRUE, selectize=TRUE)
+      #         ),
+      #         mainPanel(
+      #           tabsetPanel(
+      #             tabPanel("Dynamics", plotOutput("tagDynamics", height="768px")),
+      #             tabPanel("TED vs. TEDx")
+      #           )
+      #         )
+      #       )
     ),
     tabPanel(
       "Tag Analyses",
@@ -42,13 +68,19 @@ shinyUI(
           tabsetPanel(
             tabPanel(
               "Frequent Tags",
-              sliderInput("tag_number", label="# of tags in combination", min=1, max=4, value=1),
+              fluidRow(
+                column(6,
+                       wellPanel(
+                         sliderInput("tag_number", label="# of tags in combination", min=1, max=4, value=1)))),
               hr(),
               dataTableOutput("mostUsedTags")
             ),
             tabPanel(
               "Tag Evolution",
-              dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31"))),
+              fluidRow(
+                column(6,
+                       wellPanel(
+                         dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31")))))),
               hr(),
               dataTableOutput("tagEvol")
             ),
@@ -56,7 +88,10 @@ shinyUI(
             tabPanel("Disappeared Tags", dataTableOutput("tagDis")),
             tabPanel(
               "Tag Network",
-              sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5),
+              fluidRow(
+                column(6,
+                       wellPanel(
+                         sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5)))),
               hr(),
               htmlOutput("tagNetwork")
             )
