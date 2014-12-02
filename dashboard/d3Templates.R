@@ -363,7 +363,7 @@ ForceZoomJS <- function(){
   height = {{height}};
   
   var color = d3.scale.category20();
-
+  
   var force = d3.layout.force()
   .nodes(d3.values(nodes))
   .links(links)
@@ -372,11 +372,11 @@ ForceZoomJS <- function(){
   .charge({{charge}})
   .on(\"tick\", tick)
   .start();
-
+  
   var sqrtScl = d3.scale.sqrt().domain(d3.extent(nodes, function(d) { return d['count']; })).range([2,20]);
   
-
-var svg = d3.select(\"{{parentElement}}\").append(\"svg\")
+  
+  var svg = d3.select(\"{{parentElement}}\").append(\"svg\")
   .attr(\"width\", width)
   .attr(\"height\", height)
   .attr(\"pointer-events\", \"all\")
@@ -432,40 +432,42 @@ var svg = d3.select(\"{{parentElement}}\").append(\"svg\")
   }
   
   function mouseover() {
+  var nodeName = d3.select(this).select(\"circle\").data()[0].name;
+  var neighborNodes = [];
 
-  d3.select(this).select(\"circle\").transition()
-  .duration(750)
-  .attr(\"r\",  function(d) { return sqrtScl(d.count) + 3; } )
-  .style(\"opacity\", 1);
+  d3.selectAll(\".link\").style(\"opacity\", 0.2);
+  d3.selectAll(\"circle\").style(\"opacity\", 0.2);
 
-  d3.select(this).select(\"text\").transition()
-  .duration(750)
-  .attr(\"x\", 13)
-  .style(\"stroke-width\", \".5px\")
-  .style(\"font\", \"{{clickTextSize}}px Arial serif\")
-  .style(\"opacity\", 1);
+  d3.selectAll(\".link\").each( function (d) {
+    if (d.source.name==nodeName || d.target.name==nodeName) {
+      if (neighborNodes.indexOf(d.source.name) < 0) {neighborNodes.push(d.source.name);}
+      if (neighborNodes.indexOf(d.target.name) < 0) {neighborNodes.push(d.target.name);}
+      d3.select(this).style(\"stroke-width\", 8).style(\"opacity\", 1);
+    }
+  })
 
-  var nodeNeighbors = links.filter(function(link) {
-            return link.source.index === ind || link.target.index === ind;
-        })
-        .map(function(link) {
-             return link.source.index === ind ? link.target.index : link.source.index;
-        });     
+  d3.selectAll(\".node\").each( function (d) {
+    if (neighborNodes.indexOf(d.name) > -1) {
+      d3.select(this).select(\"circle\").transition()
+      .attr(\"r\",  function(d) { return sqrtScl(d.count) + 8; })
+      .style(\"opacity\", 1);
 
+      d3.select(this).select(\"text\").transition()
+     .attr(\"x\", 13)
+     .style(\"stroke-width\", \".5px\")
+     .style(\"font\", \"{{clickTextSize}}px Arial serif\")
+     .style(\"opacity\", 1);
+    }
+  })
   
-
-  vis.selectAll(\"circle\").style(\"opacity\", 0);
-  vis.selectAll(\"circle\").filter(function(d) {
-            return nodeNeighbors.indexOf(d.index) > -1;
-        });
-
   }
   
   function mouseout() {
-  d3.select(this).select(\"circle\").transition()
-  .duration(750)
-  .attr(\"r\",  function(d) { return sqrtScl(d.count); } );
-
+  d3.selectAll(\".link\").style(\"stroke-width\", 1).style(\"opacity\", 1);
+  d3.selectAll(\"circle\").transition()
+  .attr(\"r\",  function(d) { return sqrtScl(d.count); } )
+  .style(\"opacity\", 1);
+  
   }
   
   </script>\n"
@@ -912,21 +914,21 @@ SankeyJS <- function(){
   
   node.append(\"text\")
   .attr(\"x\", -6)
-.attr(\"y\", function(d) { return d.dy / 2; })
-.attr(\"dy\", \".35em\")
-.attr(\"text-anchor\", \"end\")
-.attr(\"transform\", null)
-.text(function(d) { return d.name; })
-.filter(function(d) { return d.x < width / 2; })
-.attr(\"x\", 6 + sankey.nodeWidth())
-.attr(\"text-anchor\", \"start\");
-
-function dragmove(d) {
-d3.select(this).attr(\"transform\", \"translate(\" + d.x + \",\" + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + \")\");
-sankey.relayout();
-link.attr(\"d\", path);
-}
-
-</script>\n
-"
+  .attr(\"y\", function(d) { return d.dy / 2; })
+  .attr(\"dy\", \".35em\")
+  .attr(\"text-anchor\", \"end\")
+  .attr(\"transform\", null)
+  .text(function(d) { return d.name; })
+  .filter(function(d) { return d.x < width / 2; })
+  .attr(\"x\", 6 + sankey.nodeWidth())
+  .attr(\"text-anchor\", \"start\");
+  
+  function dragmove(d) {
+  d3.select(this).attr(\"transform\", \"translate(\" + d.x + \",\" + (d.y = Math.max(0, Math.min(height - d.dy, d3.event.y))) + \")\");
+  sankey.relayout();
+  link.attr(\"d\", path);
+  }
+  
+  </script>\n
+  "
   }

@@ -157,7 +157,7 @@ shinyServer(function(input, output) {
     TEDx <- profile_data[
         (Content_tag1 %in% tag_TEDvsTEDx | Content_tag2 %in% tag_TEDvsTEDx | Content_tag3 %in% tag_TEDvsTEDx | Content_tag4 %in% tag_TEDvsTEDx | Content_tag5 %in% tag_TEDvsTEDx)
         , list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
-    meltData <- melt(data, id.vars=c("video_id", "event_year"))
+    meltData <- melt(TEDx, id.vars=c("video_id", "event_year"))
     setnames(meltData, "value", "tags")
     meltData <- meltData[!is.na(tags) & tags!="" & !is.na(event_year)]
     plotData_TEDx <- meltData[tags %in% tag_TEDvsTEDx, list(talks=length(unique(video_id))), by=list(tags, event_year)]
