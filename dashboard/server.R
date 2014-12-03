@@ -19,6 +19,16 @@ registerTwitterOAuth(twitCred)
 shinyServer(function(input, output) {
   ###########################
   #### reactive data listener
+  periodData <- reactive({
+    cockpit_period <- input$cockpit_period
+    
+    output <- profile_data[
+      (starts_at>=cockpit_period[1] & ends_at<=cockpit_period[2])
+      ]
+    output    
+  })
+  
+  
   tagDynamicsData <- reactive({
     tagDType <- input$tagD_type
     tagDCountry <- input$tagD_country
@@ -120,6 +130,44 @@ shinyServer(function(input, output) {
   
   ##################
   #### server output
+  output$last_events <- renderDataTable({
+    cockpit_country <- input$cockpit_country
+    data_country <- periodData()[(country==cockpit_country | cockpit_country=="All")]
+    # Select last events
+    last_events <- data_country[, list(talks=length(unique(video_id)), views=sum(views), likes=sum(likes), dislikes=sum(dislikes), shares=sum(shares)), by=list(event,starts_at,ends_at)][order(starts_at,decreasing=TRUE)][1:5, ]
+    last_events
+  }, options = list(paging=FALSE, searching=FALSE))
+  
+  output$cockpit_tags <- renderDataTable({
+    cockpit_country <- input$cockpit_country
+    comb <- input$cockpit_tagcomb
+    data_ww <- periodData()[, list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
+    data_country <- periodData()[(country==cockpit_country | cockpit_country=="All"), list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
+    
+    nodes_ww <- as.data.table(processTagComb(data_ww, comb))
+    nodes_ww$rank <- rank(-nodes_ww$count, ties.method="min")
+    nodes_country <- as.data.table(processTagComb(data_country, comb))
+    nodes_country$rank <- rank(-nodes_country$count, ties.method="min")
+    setkey(nodes_ww, tag)
+    setkey(nodes_country, tag)
+    setnames(nodes_ww, "rank", "rank_ww")
+    nodes_country <- merge(nodes_country, nodes_ww[, list(tag, rank_ww)], all.x=TRUE)
+    nodes_country$diff <- nodes_country$rank - nodes_country$rank_ww
+    
+    nodes_country[order(rank), list(tag, count, rank, rank_ww, diff)][1:20,]
+  }, options = list(paging=FALSE, searching=FALSE,
+                    rowCallback = I(
+                      'function(row, data) {
+                      // Bold cells for those > 0 in the first column
+                      if (parseFloat(data[4]) > 0.0)
+                        $("td", row).css("background-color", "#FFCCCC");
+                      if (parseFloat(data[4]) < 0.0)
+                        $("td", row).css("background-color", "#E5FFCC");
+                      }'
+                    ))
+  )
+  
+  
   output$tagDynamics <- renderPlot({
     tagDType <- input$tagD_type
     if (tagDType=="Topic") {
@@ -155,8 +203,8 @@ shinyServer(function(input, output) {
   output$tagTEDxvsTED <- renderPlot({
     tag_TEDvsTEDx <- input$tag_TEDvsTEDx
     TEDx <- profile_data[
-        (Content_tag1 %in% tag_TEDvsTEDx | Content_tag2 %in% tag_TEDvsTEDx | Content_tag3 %in% tag_TEDvsTEDx | Content_tag4 %in% tag_TEDvsTEDx | Content_tag5 %in% tag_TEDvsTEDx)
-        , list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
+      (Content_tag1 %in% tag_TEDvsTEDx | Content_tag2 %in% tag_TEDvsTEDx | Content_tag3 %in% tag_TEDvsTEDx | Content_tag4 %in% tag_TEDvsTEDx | Content_tag5 %in% tag_TEDvsTEDx)
+      , list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
     meltData <- melt(TEDx, id.vars=c("video_id", "event_year"))
     setnames(meltData, "value", "tags")
     meltData <- meltData[!is.na(tags) & tags!="" & !is.na(event_year)]
@@ -227,7 +275,8 @@ shinyServer(function(input, output) {
     
     d3ForceNetworkAdapted(Links=links, Node=as.data.frame(nodes), Source="from", Target="to",
                           Value="weight", NodeID="tag", Group="group", Count="count", width=900, height=600,
-                          opacity=1, standAlone=FALSE, parentElement="#tagNetwork", zoom=TRUE)
+                          opacity=1, standAlone=FALSE, parentElement="#tagNetwork", zoom=TRUE, showText = input$tag_showlabel,
+                          charge = -200, fontsize=6)
     
   }, width=1024)
   

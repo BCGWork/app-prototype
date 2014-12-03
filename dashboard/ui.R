@@ -6,6 +6,30 @@ shinyUI(
   navbarPage(
     "TED Dashboard",
     tabPanel(
+      "Cockpit",
+      tabsetPanel(
+        tabPanel(
+          "Country",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("cockpit_country", label="Choose country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
+              br(),
+              dateRangeInput("cockpit_period", label="Period", start=max(profile_data$ends_at, na.rm=TRUE)-180, end=max(profile_data$ends_at, na.rm=TRUE)),
+              br(),
+              sliderInput("cockpit_tagcomb", label="# of tags in combination", min=1, max=4, value=1)
+            ),
+            mainPanel(
+              h4("Last events"),
+              dataTableOutput("last_events"),
+              hr(),
+              h4("Most discussed topics"),
+              dataTableOutput("cockpit_tags")
+            )
+          )
+        )
+      )
+    ),
+    tabPanel(
       "Tag Dynamics",
       tabsetPanel(
         tabPanel(
@@ -91,7 +115,10 @@ shinyUI(
               fluidRow(
                 column(6,
                        wellPanel(
-                         sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5)))),
+                         sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5))),
+                column(6,
+                       wellPanel(
+                         checkboxInput("tag_showlabel", label="Show tag names", value = FALSE)))),
               hr(),
               htmlOutput("tagNetwork")
             )

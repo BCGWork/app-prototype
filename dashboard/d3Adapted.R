@@ -99,7 +99,7 @@ d3ForceNetworkAdapted <- function(Links, Nodes, Source, Target, Value = NULL, No
                            linkWidth = "function(d) { return Math.sqrt(d.value); }", charge = -120,
                            linkColour = "#666",opacity = 0.6, zoom = FALSE, parentElement = "body",
                            standAlone = TRUE, file = NULL, iframe = FALSE,
-                           d3Script = "http://d3js.org/d3.v3.min.js")
+                           d3Script = "http://d3js.org/d3.v3.min.js", showText = FALSE)
 {
   if (!isTRUE(standAlone) & isTRUE(iframe)){
     stop("If iframe = TRUE then standAlone must be TRUE.")
@@ -117,6 +117,10 @@ d3ForceNetworkAdapted <- function(Links, Nodes, Source, Target, Value = NULL, No
   
   # Create click text size
   clickTextSize <- fontsize * 2.5
+  
+  # Adapt default opacity of text
+  if (showText) {defaultOpacityText = 1}
+  else          {defaultOpacityText = 0}
   
   # Subset data frames for network graph
   if (class(Links) != "data.frame"){

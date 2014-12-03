@@ -76,8 +76,9 @@ ForceMainStyleSheet <- function(){
   opacity: {{opacity}};
   stroke-width: 1.5px;
   }
-  .node:not(:hover) .nodetext {
-  display: none;
+  .node .nodetext {
+  stroke-width:.5px;
+  font:{{clickTextSize}}px Arial serif;  
   }
   text {
   font: {{fontsize}}px serif;
@@ -89,6 +90,12 @@ ForceMainStyleSheet <- function(){
   <script src={{d3Script}}></script>
   
   <script> \n"
+  
+# Removed:
+#   .node:not(:hover) .nodetext {
+# display: none;
+# }
+
 }
 
 #' Mustache CSS template for d3ForceNetwork
@@ -419,7 +426,8 @@ ForceZoomJS <- function(){
   .attr(\"class\", \"nodetext\")
   .attr(\"dx\", 12)
   .attr(\"dy\", \".35em\")
-  .text(function(d) { return d.name + ' (' + d.count +')' });
+  .text(function(d) { return d.name + ' (' + d.count +')' })
+  .style(\"opacity\", {{defaultOpacityText}});
   
   function tick() {
   link
@@ -451,11 +459,8 @@ ForceZoomJS <- function(){
       d3.select(this).select(\"circle\").transition()
       .attr(\"r\",  function(d) { return sqrtScl(d.count) + 8; })
       .style(\"opacity\", 1);
-
       d3.select(this).select(\"text\").transition()
      .attr(\"x\", 13)
-     .style(\"stroke-width\", \".5px\")
-     .style(\"font\", \"{{clickTextSize}}px Arial serif\")
      .style(\"opacity\", 1);
     }
   })
@@ -467,7 +472,7 @@ ForceZoomJS <- function(){
   d3.selectAll(\"circle\").transition()
   .attr(\"r\",  function(d) { return sqrtScl(d.count); } )
   .style(\"opacity\", 1);
-  
+  d3.selectAll(\"text\").transition().style(\"opacity\", {{defaultOpacityText}})
   }
   
   </script>\n"
