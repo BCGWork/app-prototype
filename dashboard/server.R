@@ -28,7 +28,6 @@ shinyServer(function(input, output) {
     output    
   })
   
-  
   tagDynamicsData <- reactive({
     tagDType <- input$tagD_type
     tagDCountry <- input$tagD_country
@@ -99,6 +98,34 @@ shinyServer(function(input, output) {
     output
   })
   
+  tagNetworkVis <- reactive({
+    tagType <- input$tagN_type
+    tagCountry <- input$tagN_country
+    tagPeriod <- input$tagN_period
+    
+    if (tagType=="Topic") {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)
+        ]
+      output <- f_out
+    } else if (tagType=="Delivery Format") {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Format_tag1, Format_tag2, Format_tag3)
+        ]
+      output <- f_out
+    } else {
+      f_out <- profile_data[
+        (country==tagCountry | tagCountry=="All") & (starts_at>=tagPeriod[1] & ends_at<=tagPeriod[2]),
+        list(video_id, Intent_tag1, Intent_tag2)
+        ]
+      output <- f_out
+    }
+    output
+  })
+  
+  tagEvolutionData <- reactive({tagCombinationsEvol(tagNetworkData(), tagComparativeNetworkData(), input$tag_number)})
   rawTweets <- reactive({getTweets(input$twitter_hashtag, input$twitter_period[1], input$twitter_period[2])})
   tweetDate <- reactive({dailyTweets(rawTweets())})
   tweetWords <- reactive({parseTweets(input$twitter_hashtag, rawTweets())})
@@ -189,7 +216,7 @@ shinyServer(function(input, output) {
       plotData <- plotData[tags %in% topCat]
     }
     ggplot(plotData, aes_string(x="event_year", y="talks", colour="tags")) +
-      geom_point() + geom_line() +
+      geom_line(size=1) +
       scale_y_continuous(labels=comma) +
       scale_color_brewer(palette="Set1") +
       xlab("event year") +
@@ -203,8 +230,9 @@ shinyServer(function(input, output) {
   output$tagTEDxvsTED <- renderPlot({
     tag_TEDvsTEDx <- input$tag_TEDvsTEDx
     TEDx <- profile_data[
-      (Content_tag1 %in% tag_TEDvsTEDx | Content_tag2 %in% tag_TEDvsTEDx | Content_tag3 %in% tag_TEDvsTEDx | Content_tag4 %in% tag_TEDvsTEDx | Content_tag5 %in% tag_TEDvsTEDx)
-      , list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
+      (Content_tag1 %in% tag_TEDvsTEDx | Content_tag2 %in% tag_TEDvsTEDx | Content_tag3 %in% tag_TEDvsTEDx | Content_tag4 %in% tag_TEDvsTEDx | Content_tag5 %in% tag_TEDvsTEDx),
+      list(video_id, event_year, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)
+      ]
     meltData <- melt(TEDx, id.vars=c("video_id", "event_year"))
     setnames(meltData, "value", "tags")
     meltData <- meltData[!is.na(tags) & tags!="" & !is.na(event_year)]
@@ -235,33 +263,17 @@ shinyServer(function(input, output) {
   output$mostUsedTags <- renderDataTable({
     data <- tagNetworkData()
     nodes <- as.data.frame(processTagComb(data, input$tag_number))
-    #  tagFrequency <- rowSums(adj_mat)
-    #  frequentTags <- data.table(ID=as.numeric(names(tagFrequency)), frequency=tagFrequency)
-    #  setkey(nodes, ID)
-    #  setkey(frequentTags, ID)
     nodes[order(nodes$count, decreasing=TRUE), c("tag", "count")]
-  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
+  })
   
-  output$tagEvol <- renderDataTable({
-    data1 <- tagNetworkData()
-    data2 <- tagComparativeNetworkData()
-    tagCombinationsEvol(data1, data2, input$tag_number, "all")
-  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
+  output$tagEvol <- renderDataTable({tagEvolutionData()})
   
-  output$tagNew <- renderDataTable({
-    data1 <- tagNetworkData()
-    data2 <- tagComparativeNetworkData()
-    tagCombinationsEvol(data1, data2, input$tag_number, "new")
-  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
+  output$tagNew <- renderDataTable({tagEvolutionData()[status=="new tag"]})
   
-  output$tagDis <- renderDataTable({
-    data1 <- tagNetworkData()
-    data2 <- tagComparativeNetworkData()
-    tagCombinationsEvol(data1, data2, input$tag_number, "dis")
-  }, options = list(lengthMenu = list(c(25,50,100,-1), list("25","50","100","All"))))
+  output$tagDis <- renderDataTable({tagEvolutionData()[status=="disappeared tag"]})
   
   output$tagNetwork <- renderPrint({
-    data <- tagNetworkData()
+    data <- tagNetworkVis()
     data <- processTag(data)
     adj_mat <- data$adj_mat
     links <- data$edge_list
@@ -272,11 +284,10 @@ shinyServer(function(input, output) {
     setkey(nodes, ID)
     setkey(cl_dt, ID)
     nodes <- merge(nodes, cl_dt)
-    
     d3ForceNetworkAdapted(Links=links, Node=as.data.frame(nodes), Source="from", Target="to",
-                          Value="weight", NodeID="tag", Group="group", Count="count", width=900, height=600,
-                          opacity=1, standAlone=FALSE, parentElement="#tagNetwork", zoom=TRUE, showText = input$tag_showlabel,
-                          charge = -200, fontsize=6)
+                          Value="weight", NodeID="tag", Group="group", Count="count", width=1024, height=768,
+                          opacity=1, standAlone=FALSE, parentElement="#tagNetwork", zoom=TRUE, showText=input$tag_showlabel,
+                          charge=-200, fontsize=6)
     
   }, width=1024)
   
@@ -483,7 +494,8 @@ shinyServer(function(input, output) {
   output$search_output <- renderDataTable({
     profile_data[, list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
                         title, speaker, language, upload_time,
-                        category, style, taxonomy, human_tags,
+                        category, style, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5,
+                        Format_tag1, Format_tag2, Format_tag3, Intent_tag1, Intent_tag2,
                         overall_rating, idea_rating, presentation_rating, video_quality,
                         event, city, country, starts_at, ends_at, twitter_hashtag)]
   }, options=list(columnDefs=list(list(targets=0, searchable=FALSE))))

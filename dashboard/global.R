@@ -39,115 +39,33 @@ processTag <- function(data) {
 }
 
 processTagComb <- function(data, comb) {
-  if (comb <= 2) {
-    result <- processTag(data)
-    if (comb == 1) {
-      return(result$node_list);
-    } else {
-      # We use the edge list to find the combinations
-      tag_list <- result$node_list
-      edge_list <- result$edge_list
-      IDs <- paste(tag_list[(edge_list$from + 1),]$ID, tag_list[(edge_list$to + 1),]$ID, sep=", ")
-      tag <- paste(tag_list[(edge_list$from + 1),]$tag, tag_list[(edge_list$to + 1),]$tag, sep=", ")
-      count <- edge_list$weight
-      return(data.frame(ID=IDs, tag=tag, count=count));
-    }
-  } else {
-    # comb = 3 or 4
-    # no other choice than go through a FOR loop
-    tmp <- melt(data, id.vars="video_id")
-    tmp <- tmp[value!=""]
-    utag <- unique(tmp$value)[order(unique(tmp$value))]
-    tag_list <- data.table(ID=0:(length(utag)-1), tag=utag)
-    setkey(tag_list, tag)
-    setkey(tmp, value)
-    tmp2 <- tmp[tag_list]
-    # Remove talks without not enough tags      
-    mat <- dcast.data.table(tmp2, video_id~ID, fun=utilReset)
-    mat[, video_id:=NULL]
-    mat <- mat[which(rowSums(mat) >= comb), ]
-    IDs <- c()
-    tag <- c()
-    count <- c()
-    for (talk in 1:nrow(mat)) {
-      tags <- which(mat[talk,] == 1)
-      # Generate list of combinations
-      combinations <- combn(tags, comb)
-      # For each combinations, verify if it exists to create it or add one
-      for (j in 1:ncol(combinations)) {
-        combinations[,j] = combinations[order(combinations[,j]),j]
-        occ = which(IDs==paste(combinations[,j], collapse=", "))
-        if (length(occ) == 0) {
-          # If not, we create the combination
-          IDs <- c(IDs, paste(combinations[,j], collapse=", "))
-          tag <- c(tag, paste(tag_list[combinations[,j], ]$tag, collapse = ", "))
-          count <- c(count, 1)
-        } else {
-          # If yes, we increase the number of occurrences
-          count[occ] = count[occ] + 1
-        }
-      }
-    }
-    return (data.frame(ID = IDs, tag = tag, count = count))   
-  }
+  p <- ncol(data)
+  dt <- copy(data)
+  for (i in names(dt)) {set(dt, which(dt[[i]]==""), i, NA)}
+  dt[, tag_comb:=p-1-rowSums(is.na(dt))]
+  dt[, tag:=gsub(", NA", "", apply(dt[,2:p,with=FALSE], 1, function(x){paste(x, collapse=", ")}))]
+  dt <- dt[tag!="NA"]
+  out <- dt[, list(count=length(unique(video_id))), by=list(tag_comb, tag)]
+  out[, ID:=1:nrow(out)]
+  return(out[tag_comb==comb, list(ID, tag, count)])
 }
 
 ## function to identify evolution of combinations of tags
-tagCombinationsEvol <- function(data1, data2, comb, output="all") {
-  
+tagCombinationsEvol <- function(data1, data2, comb) {
   finalComb <- processTagComb(data1, comb)
   compComb <- processTagComb(data2, comb)
-  
-  label <- c()
-  delta <- c()
-  percent <- c()
-  comment <- c()
-  
-  # Identify lines that are in both dataframes
-  in_both <- unique(as.vector(compComb[as.vector(compComb$ID) %in% as.vector(finalComb$ID),]$ID))
-  
-  if (output == "all") {
-    
-    if (length(in_both) >= 1) {
-      for (i in 1:length(in_both)) {
-        ln_final = grep(paste("^",in_both[i],"$",sep=""), finalComb$ID)
-        ln_comp = grep(paste("^",in_both[i],"$",sep=""), compComb$ID)
-        # cat(paste("Looking for: ",in_both[i]," ; Final: ",ln_final, " ; Comp: ",ln_comp,"\n",sep=""))
-        if (length(ln_final) > 1) cat (paste("!!! for ", in_both[i], "\n", sep=""))
-        if (length(ln_comp) > 1) cat (paste("!!! for ", in_both[i], "\n", sep=""))
-        label <- c(label, as.character(finalComb[ln_final,]$tag))
-        delta <- c(delta, finalComb[ln_final,]$count - compComb[ln_comp,]$count)
-        percent <- c(percent, as.character(paste(as.character(round(delta[i] / compComb[ln_comp,]$count*100)),"%",sep="")))
-        comment <- c(comment, "-")
-      }
-    }
-    
-  }
-  
-  if (output == "all" | output == "new") {
-    
-    # Add lines that are in the end and not in the start
-    label <- c(label, as.character(finalComb[!(finalComb$ID %in% in_both),]$tag))
-    delta <- c(delta, finalComb[!(finalComb$ID %in% in_both),]$count)
-    percent <- c(percent, rep("+infty%",length(finalComb[!(finalComb$ID %in% in_both),]$tag)))
-    comment <- c(comment, rep("New",length(finalComb[!(finalComb$ID %in% in_both),]$tag)))
-    
-  }
-  
-  if (output == "all" | output == "dis") {
-    
-    # Add lines that are in the start and not in the end
-    label <- c(label, as.character(compComb[!(compComb$ID %in% in_both),]$tag))
-    delta <- c(delta, - compComb[!(compComb$ID %in% in_both),]$count)
-    percent <- c(percent, rep("-100%",length(compComb[!(compComb$ID %in% in_both),]$tag)))
-    comment <- c(comment, rep("Disappeared",length(compComb[!(compComb$ID %in% in_both),]$tag)))
-    
-  }
-  
-  result <- data.frame(tag = label, delta = delta, percent = percent, comment = comment)
-  result <- result[order(result$delta, decreasing=TRUE),]
-  return(result);
-  
+  finalTags <- finalComb[, count, key=tag]
+  compTags <- compComb[, count, key=tag]
+  tagDT <- merge(compTags, finalTags, all=TRUE)
+  setnames(tagDT, c("count.x", "count.y"), c("before", "after"))
+  for (i in names(tagDT)) {set(tagDT, which(is.na(tagDT[[i]])), i, 0)}
+  tagDT[, delta:=after-before]
+  tagDT[, percent_change:=paste0(100*(after-before)/before, "%")]
+  tagDT[before==0, status:="new tag"]
+  tagDT[after==0, status:="disappeared tag"]
+  tagDT[percent_change=="Inf%", percent_change:="not applicable"]
+  tagDT[is.na(status), status:="existing tag"]
+  return(tagDT[, list(tag, delta, percent_change, status)][order(-rank(delta))])
 }
 
 
@@ -171,7 +89,6 @@ getTweets <- function(term, start_date, end_date) {
       until=as.character(end_date),
       lang="en",
       n=800
-      #         geocode=paste0(c(paste0(unique(profile_data[twitter_hashtag==term, list(lat,lng)]), collapse=","), "10mi"), collapse=",")
     )
   }
   return(data)
@@ -237,7 +154,6 @@ content_tags <- processTag(profile_data[, list(video_id, Content_tag1, Content_t
 format_tags <- processTag(profile_data[, list(video_id, Format_tag1, Format_tag2, Format_tag3)])$node_list$tag
 intent_tags <- processTag(profile_data[, list(video_id, Intent_tag1, Intent_tag2)])$node_list$tag
 
-##############
 ## TED talks tags
 ted_data <- fread("data/TEDtalks_tag_data.csv", header=TRUE, sep=",")
 ted_data <- ted_data[, Published:=as.Date(Published, format="%m/%d/%y")]

@@ -443,8 +443,8 @@ ForceZoomJS <- function(){
   var nodeName = d3.select(this).select(\"circle\").data()[0].name;
   var neighborNodes = [];
 
-  d3.selectAll(\".link\").style(\"opacity\", 0.2);
-  d3.selectAll(\"circle\").style(\"opacity\", 0.2);
+  d3.selectAll(\".link\").style(\"opacity\", 0.1);
+  d3.selectAll(\"circle\").style(\"opacity\", 0.1);
 
   d3.selectAll(\".link\").each( function (d) {
     if (d.source.name==nodeName || d.target.name==nodeName) {

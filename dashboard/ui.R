@@ -4,7 +4,7 @@ hashtag <- unique(profile_data$event)
 
 shinyUI(
   navbarPage(
-    "TED Dashboard",
+    "TEDx Radar",
     tabPanel(
       "Cockpit",
       tabsetPanel(
@@ -22,7 +22,7 @@ shinyUI(
               h4("Last events"),
               dataTableOutput("last_events"),
               hr(),
-              h4("Most discussed topics"),
+              h4("Popular topics"),
               dataTableOutput("cockpit_tags")
             )
           )
@@ -30,7 +30,7 @@ shinyUI(
       )
     ),
     tabPanel(
-      "Tag Dynamics",
+      "Tag Analyses",
       tabsetPanel(
         tabPanel(
           "Dynamics",
@@ -52,76 +52,55 @@ shinyUI(
           "TEDx vs TED",
           sidebarLayout(
             sidebarPanel(
-              selectInput("tag_TEDvsTEDx", label="Topic tag to study", choices=content_tags, multiple=TRUE, selectize=TRUE)
+              selectInput("tag_TEDvsTEDx", label="Topic tag to study", choices=content_tags, selectize=TRUE)
             ),
-            mainPanel(plotOutput("tagTEDxvsTED", height="768px")))
-        )
-      )
-      #       sidebarLayout(
-      #         sidebarPanel(
-      #           selectInput("tagD_type", label="Type of Tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
-      #           br(),
-      #           selectInput("tagD_country", label="Filter by Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
-      #           br(),
-      #           selectInput("tagD_content", label="Filter by Content", choices=content_tags, multiple=TRUE, selectize=TRUE),
-      #           br(),
-      #           selectInput("tagD_format", label="Filter by Delivery Format", choices=format_tags, multiple=TRUE, selectize=TRUE),
-      #           br(),
-      #           selectInput("tagD_intent", label="Filter by Speaker Intent", choices=intent_tags, multiple=TRUE, selectize=TRUE)
-      #         ),
-      #         mainPanel(
-      #           tabsetPanel(
-      #             tabPanel("Dynamics", plotOutput("tagDynamics", height="768px")),
-      #             tabPanel("TED vs. TEDx")
-      #           )
-      #         )
-      #       )
-    ),
-    tabPanel(
-      "Tag Analyses",
-      sidebarLayout(
-        sidebarPanel(
-          selectInput("tag_type", label="Type of tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
-          br(),
-          selectInput("tag_country", label="Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
-          br(),
-          dateRangeInput("tag_period", label="Period", start=max(profile_data$ends_at, na.rm=TRUE)-180, end=max(profile_data$ends_at, na.rm=TRUE))
+            mainPanel(plotOutput("tagTEDxvsTED", height="768px"))
+          )
         ),
-        mainPanel(
-          tags$head(tags$script(src="http://d3js.org/d3.v3.min.js")),
-          tabsetPanel(
-            tabPanel(
-              "Frequent Tags",
-              fluidRow(
-                column(6,
-                       wellPanel(
-                         sliderInput("tag_number", label="# of tags in combination", min=1, max=4, value=1)))),
-              hr(),
-              dataTableOutput("mostUsedTags")
+        tabPanel(
+          "Tag Evolution",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("tag_type", label="Type of tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
+              br(),
+              selectInput("tag_country", label="Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
+              br(),
+              dateRangeInput("tag_period", label="Period", start=max(profile_data$ends_at, na.rm=TRUE)-180, end=max(profile_data$ends_at, na.rm=TRUE)),
+              br(),
+              dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31"))),
+              br(),
+              sliderInput("tag_number", label="# of tags in combination", min=1, max=4, value=1)
             ),
-            tabPanel(
-              "Tag Evolution",
-              fluidRow(
-                column(6,
-                       wellPanel(
-                         dateRangeInput("tag_comp_period", label="Comparison period", start=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-01-01")), end=as.Date(paste0(min(profile_data$event_year, na.rm=TRUE),"-12-31")))))),
-              hr(),
-              dataTableOutput("tagEvol")
-            ),
-            tabPanel("New Tags", dataTableOutput("tagNew")),
-            tabPanel("Disappeared Tags", dataTableOutput("tagDis")),
-            tabPanel(
-              "Tag Network",
-              fluidRow(
-                column(6,
-                       wellPanel(
-                         sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5))),
-                column(6,
-                       wellPanel(
-                         checkboxInput("tag_showlabel", label="Show tag names", value = FALSE)))),
-              hr(),
-              htmlOutput("tagNetwork")
+            mainPanel(
+              tags$head(tags$script(src="http://d3js.org/d3.v3.min.js")),
+              tabsetPanel(
+                tabPanel("Frequent Tags", dataTableOutput("mostUsedTags")),
+                tabPanel("Tag Overview", dataTableOutput("tagEvol")),
+                tabPanel("New Tags", dataTableOutput("tagNew")),
+                tabPanel("Disappeared Tags", dataTableOutput("tagDis"))
+              )
             )
+          )
+        ),
+        tabPanel(
+          "Tag Network",
+          sidebarLayout(
+            sidebarPanel(
+              selectInput("tagN_type", label="Type of tags", choices=c("Topic", "Delivery Format", "Speaker Intent"), selected="Topic"),
+              br(),
+              selectInput("tagN_country", label="Country", choices=c("All", unique(profile_data$country)[order(unique(profile_data$country))]), selected="All"),
+              br(),
+              dateRangeInput("tagN_period", label="Period", start=max(profile_data$ends_at, na.rm=TRUE)-180, end=max(profile_data$ends_at, na.rm=TRUE)),
+              br(),
+              sliderInput("tag_cluster", label="Number of tag groups", min=1, max=15, step=1, value=5),
+              br(),
+              checkboxInput("tag_showlabel", label="Show tag names", value = FALSE)
+            ),
+            mainPanel(
+              br(),
+              br(),
+              htmlOutput("tagNetwork")
+              )
           )
         )
       )
