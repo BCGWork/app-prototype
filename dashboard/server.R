@@ -215,6 +215,7 @@ shinyServer(function(input, output) {
       topCat <- plotData[, list(talks=sum(talks)), by=tags][order(-rank(talks))][1:9, tags]
       plotData <- plotData[tags %in% topCat]
     }
+    
     ggplot(plotData, aes_string(x="event_year", y="talks", colour="tags")) +
       geom_line(size=1) +
       scale_y_continuous(labels=comma) +
