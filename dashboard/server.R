@@ -283,7 +283,7 @@ shinyServer(function(input, output) {
   output$tagFilteredData <- renderDataTable({
     tagString <- input$rows
     rawTags <- gsub("</a>", "", gsub("<a href='#'>", "", tagString))
-    if (is.null(rawTags)) {
+    if (identical(rawTags, character(0))) {
       tagNetworkData()
     } else {
       tagType <- input$tag_type
