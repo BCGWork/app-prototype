@@ -82,7 +82,8 @@ shinyUI(
                   tabPanel("Frequent Tags", dataTableOutput("mostUsedTags")),
                   tabPanel("Tag Overview", dataTableOutput("tagEvol")),
                   tabPanel("New Tags", dataTableOutput("tagNew")),
-                  tabPanel("Disappeared Tags", dataTableOutput("tagDis"))
+                  tabPanel("Disappeared Tags", dataTableOutput("tagDis")),
+                  tabPanel("Filtered Data", dataTableOutput("tagFilteredData"))
                 )
               )
             )

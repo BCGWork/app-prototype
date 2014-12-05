@@ -264,14 +264,54 @@ shinyServer(function(input, output) {
   output$mostUsedTags <- renderDataTable({
     data <- tagNetworkData()
     nodes <- as.data.frame(processTagComb(data, input$tag_number))
+    nodes$tag <- paste0("<a href='#'>", nodes$tag, "</a>")
     nodes[order(nodes$count, decreasing=TRUE), c("tag", "count")]
-  })
+  }, callback = "function(table) {
+      table.on('click.dt', 'tr', function() {
+        Shiny.onInputChange('rows', table.row(this).data()[0] );
+        $(\".tabbable .nav.nav-tabs li a:contains('Filtered Data')\").click();
+      });
+    }"
+  )
   
   output$tagEvol <- renderDataTable({tagEvolutionData()})
   
   output$tagNew <- renderDataTable({tagEvolutionData()[status=="new tag"]})
   
   output$tagDis <- renderDataTable({tagEvolutionData()[status=="disappeared tag"]})
+  
+  output$tagFilteredData <- renderDataTable({
+    tagString <- input$rows
+    rawTags <- gsub("</a>", "", gsub("<a href='#'>", "", tagString))
+    if (is.null(rawTags)) {
+      tagNetworkData()
+    } else {
+      tagType <- input$tag_type
+      tagArray <- strsplit(rawTags, ", ")[[1]]
+      if (tagType=="Topic") {
+        profile_data[(Content_tag1 %in% tagArray) | (Content_tag2 %in% tagArray) | (Content_tag3 %in% tagArray) | (Content_tag4 %in% tagArray) | (Content_tag5 %in% tagArray),
+                     list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
+                          title, speaker, language, upload_time,
+                          category, style, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5,
+                          overall_rating, idea_rating, presentation_rating, video_quality,
+                          event, city, country, starts_at, ends_at, twitter_hashtag)]
+      } else if (tagType=="Delivery Format") {
+        profile_data[(Format_tag1 %in% tagArray) | (Format_tag2 %in% tagArray) | (Format_tag3 %in% tagArray),
+                     list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
+                          title, speaker, language, upload_time,
+                          category, style, Format_tag1, Format_tag2, Format_tag3,
+                          overall_rating, idea_rating, presentation_rating, video_quality,
+                          event, city, country, starts_at, ends_at, twitter_hashtag)]
+      } else {
+        profile_data[(Intent_tag1 %in% tagArray) | (Intent_tag2 %in% tagArray),
+                     list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
+                          title, speaker, language, upload_time,
+                          category, style, Intent_tag1, Intent_tag2,
+                          overall_rating, idea_rating, presentation_rating, video_quality,
+                          event, city, country, starts_at, ends_at, twitter_hashtag)]
+      }
+    }
+  }, options=list(columnDefs=list(list(targets=0, searchable=FALSE))))
   
   output$tagNetwork <- renderPrint({
     data <- tagNetworkVis()
@@ -511,7 +551,10 @@ shinyServer(function(input, output) {
   
   output$tweets <- renderDataTable({
     input$search_tweets
-    tweetDate()
+    if (input$search_tweets == 0) {
+      return()
+    }
+    isolate(tweetDate())
   })
   
   output$twitter_ts <- renderPlot({
