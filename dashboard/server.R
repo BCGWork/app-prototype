@@ -171,9 +171,9 @@ shinyServer(function(input, output) {
     data_ww <- periodData()[, list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
     data_country <- periodData()[(country==cockpit_country | cockpit_country=="All"), list(video_id, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5)]
     
-    nodes_ww <- as.data.table(processTagComb(data_ww, comb))
+    nodes_ww <- as.data.table(processTagComb(data_ww, comb)$tag_freq)
     nodes_ww$rank <- rank(-nodes_ww$count, ties.method="min")
-    nodes_country <- as.data.table(processTagComb(data_country, comb))
+    nodes_country <- as.data.table(processTagComb(data_country, comb)$tag_freq)
     nodes_country$rank <- rank(-nodes_country$count, ties.method="min")
     setkey(nodes_ww, tag)
     setkey(nodes_country, tag)
@@ -240,10 +240,7 @@ shinyServer(function(input, output) {
     plotData_TEDx <- meltData[tags %in% tag_TEDvsTEDx, list(talks=length(unique(video_id))), by=list(tags, event_year)]
     plotData_TEDx$type = "TEDx"
     
-    TED <- ted_data[
-      (tolower(Tag) %in% tolower(tag_TEDvsTEDx)), 
-      list(TalkId, Tag, event_year)
-      ]
+    TED <- ted_data[(tolower(Tag) %in% tolower(tag_TEDvsTEDx)), list(TalkId, Tag, event_year)]
     setnames(TED, "Tag", "tags")
     plotData_TED <- TED[, list(talks=length(unique(TalkId))), by=list(tags, event_year)]
     plotData_TED$type = "TED"
@@ -263,7 +260,7 @@ shinyServer(function(input, output) {
   
   output$mostUsedTags <- renderDataTable({
     data <- tagNetworkData()
-    nodes <- as.data.frame(processTagComb(data, input$tag_number))
+    nodes <- as.data.frame(processTagComb(data, input$tag_number)$tag_freq)
     nodes$tag <- paste0("<a href='#'>", nodes$tag, "</a>")
     nodes[order(nodes$count, decreasing=TRUE), c("tag", "count")]
   }, callback = "function(table) {
@@ -284,26 +281,28 @@ shinyServer(function(input, output) {
     tagString <- input$rows
     rawTags <- gsub("</a>", "", gsub("<a href='#'>", "", tagString))
     if (identical(rawTags, character(0))) {
-      tagNetworkData()
+      data.table(NULL)
     } else {
       tagType <- input$tag_type
-      tagArray <- strsplit(rawTags, ", ")[[1]]
+      networkData <- tagNetworkData()
+      taggedVideoData <- processTagComb(networkData, input$tag_number)$raw[, list(tag, video_id)]
+      taggedVideos <- taggedVideoData[tag==rawTags]$video_id
       if (tagType=="Topic") {
-        profile_data[(Content_tag1 %in% tagArray) | (Content_tag2 %in% tagArray) | (Content_tag3 %in% tagArray) | (Content_tag4 %in% tagArray) | (Content_tag5 %in% tagArray),
+        profile_data[(video_id %in% taggedVideos),
                      list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
                           title, speaker, language, upload_time,
                           category, style, Content_tag1, Content_tag2, Content_tag3, Content_tag4, Content_tag5,
                           overall_rating, idea_rating, presentation_rating, video_quality,
                           event, city, country, starts_at, ends_at, twitter_hashtag)]
       } else if (tagType=="Delivery Format") {
-        profile_data[(Format_tag1 %in% tagArray) | (Format_tag2 %in% tagArray) | (Format_tag3 %in% tagArray),
+        profile_data[(video_id %in% taggedVideos),
                      list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
                           title, speaker, language, upload_time,
                           category, style, Format_tag1, Format_tag2, Format_tag3,
                           overall_rating, idea_rating, presentation_rating, video_quality,
                           event, city, country, starts_at, ends_at, twitter_hashtag)]
       } else {
-        profile_data[(Intent_tag1 %in% tagArray) | (Intent_tag2 %in% tagArray),
+        profile_data[(video_id %in% taggedVideos),
                      list(youtube_url=paste0("<a href='", youtube_url, "' target='_blank'>Watch Now<a>"),
                           title, speaker, language, upload_time,
                           category, style, Intent_tag1, Intent_tag2,

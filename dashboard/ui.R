@@ -1,5 +1,5 @@
 library(shiny)
-library(ggvis)
+
 # hashtag <- unique(profile_data$twitter_hashtag)[nchar(unique(profile_data$twitter_hashtag))>0]
 hashtag <- unique(profile_data$event)
 

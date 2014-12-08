@@ -43,17 +43,17 @@ processTagComb <- function(data, comb) {
   dt <- copy(data)
   for (i in names(dt)) {set(dt, which(dt[[i]]==""), i, NA)}
   dt[, tag_comb:=p-1-rowSums(is.na(dt))]
-  dt[, tag:=gsub(", NA", "", apply(dt[,2:p,with=FALSE], 1, function(x){paste(x, collapse=", ")}))]
+  dt[, tag:=gsub("NA, ", "", gsub(", NA", "", apply(dt[,2:p,with=FALSE], 1, function(x){paste(x, collapse=", ")})))]
   dt <- dt[tag!="NA"]
   out <- dt[, list(count=length(unique(video_id))), by=list(tag_comb, tag)]
   out[, ID:=1:nrow(out)]
-  return(out[tag_comb==comb, list(ID, tag, count)])
+  return(list(tag_freq=out[tag_comb==comb, list(ID, tag, count)], raw=dt))
 }
 
 ## function to identify evolution of combinations of tags
 tagCombinationsEvol <- function(data1, data2, comb) {
-  finalComb <- processTagComb(data1, comb)
-  compComb <- processTagComb(data2, comb)
+  finalComb <- processTagComb(data1, comb)$tag_freq
+  compComb <- processTagComb(data2, comb)$tag_freq
   finalTags <- finalComb[, count, key=tag]
   compTags <- compComb[, count, key=tag]
   tagDT <- merge(compTags, finalTags, all=TRUE)
